@@ -1,0 +1,30 @@
+[Unit]
+Description=RepoKeeper - AI GitHub Repository Maintenance Agent
+After=network.target
+Documentation=https://github.com/GodsBoy/repokeeper
+
+[Service]
+Type=simple
+User=repokeeper
+Group=repokeeper
+WorkingDirectory=/home/repokeeper/repokeeper
+ExecStart=/usr/bin/node dist/index.js
+EnvironmentFile=/home/repokeeper/repokeeper/.env
+Restart=on-failure
+RestartSec=5
+WatchdogSec=60
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/repokeeper/repokeeper/logs
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=repokeeper
+
+[Install]
+WantedBy=multi-user.target
