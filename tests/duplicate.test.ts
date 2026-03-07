@@ -8,8 +8,25 @@ const existingIssues = [
   { number: 3, title: 'Documentation typo in README', body: 'There is a typo in the installation section' },
 ];
 
+// Issues modeled after the real failure: #3 and #5 from GodsBoy/repokeeper
+const installIssues = [
+  { number: 3, title: 'nothing works after install', body: 'i ran the install but nothing happens. its broken.' },
+  { number: 4, title: 'Add dark mode support', body: 'Please add dark mode theme to the settings page' },
+];
+
 function mockAI(response: string): AIProvider {
   return { complete: async () => response };
+}
+
+function mockAIDynamic(responses: Map<string, string>): AIProvider {
+  return {
+    complete: async (prompt: string) => {
+      for (const [key, value] of responses) {
+        if (prompt.includes(key)) return value;
+      }
+      return '0.1';
+    },
+  };
 }
 
 function failingAI(): AIProvider {
@@ -122,6 +139,63 @@ describe('findDuplicates with AI', () => {
       'The app crashes when I click login',
       existingIssues,
       0.8,
+      ai,
+    );
+    expect(results).toHaveLength(0);
+  });
+
+  it('detects semantically similar issues with different wording (install/startup failure)', async () => {
+    // This is the critical test case: issues #3 and #5 from the live test
+    // They use completely different words but describe the same problem
+    const ai = mockAIDynamic(
+      new Map([['nothing works after install', '0.85']]),
+    );
+    const results = await findDuplicates(
+      'app wont start up',
+      'tried installing but the app refuses to start. same as before.',
+      installIssues,
+      0.7,
+      ai,
+    );
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].number).toBe(3);
+    expect(results[0].score).toBeGreaterThanOrEqual(0.7);
+  });
+
+  it('sends all issues to AI when count is below direct threshold', async () => {
+    // With <= 30 issues, the AI should see ALL of them (no Jaccard pre-filter)
+    let aiCallCount = 0;
+    const countingAI: AIProvider = {
+      complete: async () => {
+        aiCallCount++;
+        return '0.3';
+      },
+    };
+
+    await findDuplicates(
+      'app wont start up',
+      'tried installing but the app refuses to start.',
+      installIssues,
+      0.7,
+      countingAI,
+    );
+
+    // AI should have been called once for each existing issue
+    expect(aiCallCount).toBe(installIssues.length);
+  });
+
+  it('does not flag unrelated issues as duplicates even with AI', async () => {
+    const ai = mockAIDynamic(
+      new Map([
+        ['nothing works after install', '0.2'],
+        ['dark mode', '0.1'],
+      ]),
+    );
+    const results = await findDuplicates(
+      'Add webhook retry logic',
+      'When a webhook delivery fails, it should retry with exponential backoff.',
+      installIssues,
+      0.7,
       ai,
     );
     expect(results).toHaveLength(0);

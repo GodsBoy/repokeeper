@@ -7,12 +7,18 @@ export interface SimilarIssue {
   score: number;
 }
 
-const SIMILARITY_PROMPT = `You are a duplicate issue detector. Compare the two GitHub issues below and rate their semantic similarity on a scale from 0.0 to 1.0.
+const SIMILARITY_PROMPT = `You are a duplicate issue detector for a GitHub repository. Compare the two issues below and rate how likely they describe the SAME underlying problem or request.
 
-0.0 = completely unrelated
-0.5 = somewhat related but different issues
-0.8 = very similar, likely the same problem
+Score from 0.0 to 1.0:
+0.0 = completely unrelated topics
+0.3 = vaguely related but clearly different issues
+0.5 = related topic but different specific problems
+0.7 = very likely the same issue, just described differently
+0.9 = almost certainly the same issue
 1.0 = exact duplicate
+
+Consider semantic meaning, not just word overlap. Two issues can describe the same problem using completely different words.
+For example: "app won't start" and "nothing works after install" are likely the same problem (both about installation/startup failure).
 
 NEW ISSUE:
 Title: {newTitle}
@@ -23,6 +29,9 @@ Title: {existingTitle}
 Body: {existingBody}
 
 Respond with ONLY a single decimal number between 0.0 and 1.0. Nothing else.`;
+
+// Maximum number of open issues to send to AI without pre-filtering
+const AI_DIRECT_THRESHOLD = 30;
 
 export async function findDuplicates(
   title: string,
@@ -51,24 +60,32 @@ async function findDuplicatesWithAI(
   threshold: number,
   ai: AIProvider,
 ): Promise<SimilarIssue[]> {
-  // Pre-filter with a lower Jaccard threshold to avoid sending every issue to the AI
-  const candidates = findDuplicatesJaccard(title, body, openIssues, Math.max(0.1, threshold - 0.4));
+  let candidates: Array<{ number: number; title: string; body: string | null }>;
 
-  // If Jaccard finds nothing even at a low bar, no need to call AI
-  if (candidates.length === 0) {
-    return [];
+  if (openIssues.length <= AI_DIRECT_THRESHOLD) {
+    // Small repo: send all issues to AI directly (no Jaccard pre-filter)
+    candidates = openIssues;
+  } else {
+    // Large repo: use a very low Jaccard pre-filter to narrow down candidates
+    const jaccardCandidates = findDuplicatesJaccard(title, body, openIssues, 0.05);
+    if (jaccardCandidates.length === 0) {
+      // Even at the lowest bar nothing matched — still send top N by keyword overlap
+      candidates = openIssues.slice(0, AI_DIRECT_THRESHOLD);
+    } else {
+      candidates = jaccardCandidates.map((c) => {
+        const issue = openIssues.find((i) => i.number === c.number);
+        return issue!;
+      });
+    }
   }
 
   const results: SimilarIssue[] = [];
 
   for (const candidate of candidates) {
-    const existingIssue = openIssues.find((i) => i.number === candidate.number);
-    if (!existingIssue) continue;
-
     const prompt = SIMILARITY_PROMPT.replace('{newTitle}', title)
       .replace('{newBody}', body || '(empty)')
-      .replace('{existingTitle}', existingIssue.title)
-      .replace('{existingBody}', existingIssue.body || '(empty)');
+      .replace('{existingTitle}', candidate.title)
+      .replace('{existingBody}', candidate.body || '(empty)');
 
     const response = (await ai.complete(prompt)).trim();
     const score = parseFloat(response);

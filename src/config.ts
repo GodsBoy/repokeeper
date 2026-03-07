@@ -45,7 +45,7 @@ const defaults: RepoKeeperConfig = {
   },
   triage: {
     enabled: true,
-    duplicateThreshold: 0.85,
+    duplicateThreshold: 0.7,
     minimumBodyLength: 100,
   },
   prSummariser: {
