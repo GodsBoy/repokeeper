@@ -4,6 +4,12 @@
 
 An open source, locally-running AI agent for GitHub repository maintenance.
 
+## Demo
+
+https://github.com/user-attachments/assets/demo.cast
+
+> To play locally: `asciinema play demo/demo.cast`
+
 ## The Problem
 
 Maintainers are drowning. AI-generated pull requests, duplicate issues, low-effort bug reports, and community questions pile up faster than any human can triage them. In 2026, the average popular open source repo receives more noise than signal — and maintainer burnout is at an all-time high.
