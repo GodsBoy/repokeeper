@@ -62,17 +62,36 @@ export async function postReview(
   const body = buildReviewBody(result);
   const comments = buildComments(result.findings);
 
-  await octokit.pulls.createReview({
-    owner,
-    repo,
-    pull_number: pullNumber,
-    commit_id: commitSha,
-    event,
-    body,
-    comments,
-  });
-
-  log('info', `Posted ${event} review on PR #${pullNumber} with ${comments.length} inline comment(s)`);
+  try {
+    await octokit.pulls.createReview({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      commit_id: commitSha,
+      event,
+      body,
+      comments,
+    });
+    log('info', `Posted ${event} review on PR #${pullNumber} with ${comments.length} inline comment(s)`);
+  } catch (err) {
+    // GitHub rejects REQUEST_CHANGES on your own PR — fall back to COMMENT
+    const message = err instanceof Error ? err.message : String(err);
+    if (event === 'REQUEST_CHANGES' && message.includes('own pull request')) {
+      log('warn', `Cannot request changes on own PR #${pullNumber}, falling back to COMMENT event`);
+      await octokit.pulls.createReview({
+        owner,
+        repo,
+        pull_number: pullNumber,
+        commit_id: commitSha,
+        event: 'COMMENT',
+        body,
+        comments,
+      });
+      log('info', `Posted COMMENT review on PR #${pullNumber} with ${comments.length} inline comment(s)`);
+    } else {
+      throw err;
+    }
+  }
 }
 
 export async function getReviewComments(
