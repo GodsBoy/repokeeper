@@ -10,7 +10,8 @@ export class OpenAIProvider implements AIProvider {
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY environment variable is required for OpenAI provider');
     }
-    this.client = new OpenAI({ apiKey });
+    const baseURL = process.env.OPENAI_BASE_URL;
+    this.client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
     this.model = model;
   }
 
