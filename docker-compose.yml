@@ -1,0 +1,10 @@
+services:
+  repokeeper:
+    build: .
+    ports:
+      - "${PORT:-3001}:3001"
+    env_file:
+      - .env
+    volumes:
+      - ./repokeeper.config.ts:/app/repokeeper.config.ts:ro
+    restart: unless-stopped

@@ -56,6 +56,31 @@ pnpm start
 
 RepoKeeper is now listening for GitHub events. Open an issue or PR to see it in action.
 
+## Docker Quick Start
+
+### 1. Configure
+
+```bash
+cp repokeeper.config.example.ts repokeeper.config.ts
+cp .env.example .env
+```
+
+Edit both files with your settings.
+
+### 2. Run with Docker Compose
+
+```bash
+docker compose up -d
+```
+
+This builds the image, mounts your config file, and reads environment variables from `.env`. RepoKeeper will be available on port 3001 (or the `PORT` value in your `.env`).
+
+To rebuild after code changes:
+
+```bash
+docker compose up -d --build
+```
+
 ## Configuration Reference
 
 All configuration lives in `repokeeper.config.ts`:
@@ -73,6 +98,7 @@ All configuration lives in `repokeeper.config.ts`:
 | `triage.minimumBodyLength` | `number` | `100` | Minimum issue body length before adding `needs-info` |
 | `prSummariser.enabled` | `boolean` | `true` | Enable/disable PR summarisation |
 | `prSummariser.minDiffLines` | `number` | `50` | Minimum diff size to trigger AI summary |
+| `prSummariser.generateReleaseNotes` | `boolean` | `true` | Generate release notes on merged PRs |
 | `port` | `number` | `3001` | Port for the webhook server |
 
 ## Supported AI Providers
