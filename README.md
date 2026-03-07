@@ -12,6 +12,7 @@ RepoKeeper connects to your GitHub repository via webhooks and handles the borin
 
 - **Issue Triage** — Automatically classifies new issues (bug, feature, question, docs, invalid), detects duplicates, applies labels, and posts helpful responses
 - **PR Summarisation** — Generates plain-English summaries of pull requests with per-file descriptions, flags breaking changes, and applies size labels
+- **Code Review** — Codebase-aware AI code review with line-by-line GitHub review comments, test gap detection, configurable focus areas, and review memory
 - **AI-Powered** — Uses Claude, GPT, or Ollama (your choice) to understand context and generate human-quality responses
 - **Model-Agnostic** — Switch AI providers with a single config change — no vendor lock-in
 - **Runs Locally** — Your code and data stay on your machine. No SaaS middleman.
@@ -99,11 +100,15 @@ All configuration lives in `repokeeper.config.ts`:
 | `prSummariser.enabled` | `boolean` | `true` | Enable/disable PR summarisation |
 | `prSummariser.minDiffLines` | `number` | `50` | Minimum diff size to trigger AI summary |
 | `prSummariser.generateReleaseNotes` | `boolean` | `true` | Generate release notes on merged PRs |
+| `codeReview.enabled` | `boolean` | `true` | Enable/disable AI code review |
+| `codeReview.focus` | `string[]` | `["security", "performance", "test-coverage", "breaking-changes"]` | Review focus areas |
+| `codeReview.maxContextFiles` | `number` | `5` | Max dependency files to include per changed file |
+| `codeReview.minDiffLines` | `number` | `10` | Minimum added lines to trigger review |
 | `port` | `number` | `3001` | Port for the webhook server |
 
 ## Per-Repository YAML Config
 
-You can add a `.github/repokeeper.yml` file to any repository to override specific settings. This file is fetched from the repo via the GitHub API on startup and merged with your local config (repo YAML wins for `triage`, `prSummariser`, and `ai` settings).
+You can add a `.github/repokeeper.yml` file to any repository to override specific settings. This file is fetched from the repo via the GitHub API on startup and merged with your local config (repo YAML wins for `triage`, `prSummariser`, `codeReview`, and `ai` settings).
 
 Example `.github/repokeeper.yml`:
 
@@ -115,6 +120,12 @@ triage:
 prSummariser:
   minDiffLines: 100
   generateReleaseNotes: false
+
+codeReview:
+  enabled: true
+  focus: [security, performance, test-coverage]
+  maxContextFiles: 3
+  minDiffLines: 20
 
 ai:
   model: gpt-4o
@@ -130,26 +141,54 @@ Security-sensitive settings (`github.token`, `github.webhookSecret`, `port`) can
 | **GPT** (OpenAI) | `OPENAI_API_KEY` | Solid alternative. |
 | **Ollama** | `OLLAMA_URL` | Free, local inference. Default URL: `http://localhost:11434` |
 
+## Code Review
+
+RepoKeeper provides codebase-aware AI code review that posts line-by-line review comments directly on GitHub pull requests — like a human reviewer, but faster.
+
+### How It Works
+
+1. **Codebase Context** — When a PR is opened or updated, RepoKeeper clones the repo and reads the import graph of each changed file. This gives the AI reviewer actual understanding of how the code fits into the project.
+
+2. **Line-by-Line Comments** — Findings are posted as GitHub review comments on specific lines of the diff, not generic PR comments. Three severity levels:
+   - **BLOCKING** — Must fix before merge (triggers `request_changes`)
+   - **WARNING** — Should fix, but not a blocker
+   - **SUGGESTION** — Nice to have (test gaps, style improvements)
+
+3. **Smart Re-Review** — On `pull_request.synchronize` (new push), RepoKeeper only reviews changed hunks, skipping code it already reviewed. No duplicate noise.
+
+4. **Test Gap Detection** — Automatically identifies new functions, methods, and classes that have no corresponding test, and suggests how to test them.
+
+5. **Review Memory** — When a PR is merged, RepoKeeper learns from the accepted review comments. Previously-approved patterns won't be flagged again in future reviews.
+
+6. **Configurable Focus** — Control what the review focuses on via config: `security`, `performance`, `test-coverage`, `breaking-changes`, or any custom focus area.
+
+### Free with Ollama
+
+The code review feature works with all three AI providers. Use Ollama for completely free, private, local code review with no API costs.
+
 ## Architecture
 
 ```
 GitHub Webhook → Express Server → Event Router
                                       │
-                          ┌───────────┴───────────┐
-                          │                       │
-                    Issue Triage             PR Summariser
-                          │                       │
-                   ┌──────┴──────┐          ┌─────┴─────┐
-                   │             │          │           │
-              Classifier    Duplicate    Summariser  Labeler
-                   │        Detector        │
-                   └──────┬──────┘          │
-                          │                 │
-                     AI Provider ←──────────┘
-                   (Claude/GPT/Ollama)
-                          │
-                     GitHub API
-               (labels, comments, close)
+                      ┌───────────────┼───────────────┐
+                      │               │               │
+                Issue Triage    PR Summariser     Code Review
+                      │               │               │
+               ┌──────┴──────┐  ┌─────┴─────┐  ┌─────┴──────┐
+               │             │  │           │  │            │
+          Classifier  Duplicate Summariser Labeler Context  Hunk
+               │      Detector     │          Builder  Tracker
+               └──────┬──────┘    │            │         │
+                      │           │        Memory    Comment
+                      │           │            │     Poster
+                      └───────────┼────────────┘       │
+                                  │                    │
+                             AI Provider ←─────────────┘
+                           (Claude/GPT/Ollama)
+                                  │
+                             GitHub API
+                    (labels, comments, reviews)
 ```
 
 ## Development
