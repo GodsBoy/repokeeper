@@ -9,9 +9,8 @@ An open source, self-hosted AI agent for GitHub repository maintenance. Deploy o
 
 ## Demo
 
-https://github.com/user-attachments/assets/demo.cast
+See [demo/demo.cast](demo/demo.cast) — play with: `asciinema play demo/demo.cast`
 
-> To play locally: `asciinema play demo/demo.cast`
 
 ## The Problem
 
