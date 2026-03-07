@@ -1,11 +1,28 @@
-# RepoKeeper
+<div align="center">
+
+# 🤖 RepoKeeper
+
+**AI-powered GitHub repository maintenance on autopilot.**
+
+*Deploy on a VPS. Let it handle issue triage, PR summaries, duplicate detection, and code review across all your repos.*
 
 [![CI](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org/)
-[![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](https://hub.docker.com/)
+[![GitHub stars](https://img.shields.io/github/stars/GodsBoy/repokeeper?style=social)](https://github.com/GodsBoy/repokeeper/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/GodsBoy/repokeeper?style=social)](https://github.com/GodsBoy/repokeeper/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/GodsBoy/repokeeper)](https://github.com/GodsBoy/repokeeper/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/GodsBoy/repokeeper)](https://github.com/GodsBoy/repokeeper/commits/main)
 
-An open source, self-hosted AI agent for GitHub repository maintenance. Deploy on a VPS and let it handle issue triage, PR summarisation, and code review across all your repos.
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/GodsBoy/repokeeper/pulls)
+
+[Getting Started](#quick-start) · [Features](#what-repokeeper-does) · [Deploy to VPS](#production-deployment) · [Multi-Repo](#multi-repo-configuration) · [Contributing](#contributing)
+
+</div>
+
+---
 
 ## Demo
 
@@ -315,6 +332,32 @@ Contributions are welcome! Please:
 4. Ensure `pnpm test` and `pnpm build` pass
 5. Open a pull request
 
+## Star History
+
+<a href="https://star-history.com/#GodsBoy/repokeeper&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=GodsBoy/repokeeper&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=GodsBoy/repokeeper&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=GodsBoy/repokeeper&type=Date" />
+ </picture>
+</a>
+
+## Contributors
+
+<a href="https://github.com/GodsBoy/repokeeper/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=GodsBoy/repokeeper" />
+</a>
+
 ## Licence
 
 MIT
+
+---
+
+<div align="center">
+
+**If RepoKeeper saves you time, consider giving it a ⭐**
+
+[Report Bug](https://github.com/GodsBoy/repokeeper/issues/new?labels=bug&template=bug_report.md) · [Request Feature](https://github.com/GodsBoy/repokeeper/issues/new?labels=enhancement&template=feature_request.md)
+
+</div>
