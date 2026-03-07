@@ -4,6 +4,7 @@ import { getConfig } from '../config.js';
 import { log } from '../logger.js';
 import { handleIssueOpened } from '../triage/responder.js';
 import { handlePullRequest, handlePullRequestMerged } from '../pr/summariser.js';
+import { handleCodeReview, handleCodeReviewMerged } from '../review/reviewer.js';
 import type { AIProvider } from '../ai/provider.js';
 import type { GitHubClient } from '../github/client.js';
 
@@ -47,11 +48,17 @@ export function createWebhookHandler(ai: AIProvider, github: GitHubClient) {
           if (config.prSummariser.enabled) {
             await handlePullRequest(req.body, ai, github, config);
           }
+          if (config.codeReview.enabled) {
+            await handleCodeReview(req.body, ai, github, config);
+          }
           break;
 
         case 'pull_request.closed':
           if (config.prSummariser.enabled && req.body?.pull_request?.merged) {
             await handlePullRequestMerged(req.body, ai, github, config);
+          }
+          if (config.codeReview.enabled && req.body?.pull_request?.merged) {
+            await handleCodeReviewMerged(req.body, config);
           }
           break;
 

@@ -89,6 +89,42 @@ export class GitHubClient {
     }));
   }
 
+  async createReview(
+    pullNumber: number,
+    commitId: string,
+    event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT',
+    body: string,
+    comments: Array<{ path: string; line: number; body: string }>,
+  ): Promise<void> {
+    await this.octokit.pulls.createReview({
+      owner: this.owner,
+      repo: this.repo,
+      pull_number: pullNumber,
+      commit_id: commitId,
+      event,
+      body,
+      comments,
+    });
+    log('info', `Created ${event} review on PR #${pullNumber}`);
+  }
+
+  async getReviewComments(
+    pullNumber: number,
+  ): Promise<Array<{ id: number; body: string; path: string; line: number | null }>> {
+    const comments = await this.octokit.paginate(this.octokit.pulls.listReviewComments, {
+      owner: this.owner,
+      repo: this.repo,
+      pull_number: pullNumber,
+      per_page: 100,
+    });
+    return comments.map((c) => ({
+      id: c.id,
+      body: c.body,
+      path: c.path,
+      line: c.line ?? null,
+    }));
+  }
+
   private async ensureLabelsExist(labels: string[]): Promise<void> {
     const existing = await this.octokit.paginate(this.octokit.issues.listLabelsForRepo, {
       owner: this.owner,
