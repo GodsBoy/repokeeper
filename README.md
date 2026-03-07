@@ -101,6 +101,27 @@ All configuration lives in `repokeeper.config.ts`:
 | `prSummariser.generateReleaseNotes` | `boolean` | `true` | Generate release notes on merged PRs |
 | `port` | `number` | `3001` | Port for the webhook server |
 
+## Per-Repository YAML Config
+
+You can add a `.github/repokeeper.yml` file to any repository to override specific settings. This file is fetched from the repo via the GitHub API on startup and merged with your local config (repo YAML wins for `triage`, `prSummariser`, and `ai` settings).
+
+Example `.github/repokeeper.yml`:
+
+```yaml
+triage:
+  duplicateThreshold: 0.7
+  minimumBodyLength: 50
+
+prSummariser:
+  minDiffLines: 100
+  generateReleaseNotes: false
+
+ai:
+  model: gpt-4o
+```
+
+Security-sensitive settings (`github.token`, `github.webhookSecret`, `port`) cannot be overridden via the YAML file.
+
 ## Supported AI Providers
 
 | Provider | Env Variable | Notes |
