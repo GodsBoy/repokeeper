@@ -215,3 +215,9 @@ Contributions are welcome! Please:
 ## Licence
 
 MIT
+
+## Status
+
+![Tests](https://img.shields.io/badge/tests-41%2F41%20passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-0.1.0-orange)
