@@ -1,5 +1,7 @@
 # RepoKeeper
 
+[![CI](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml)
+
 An open source, locally-running AI agent for GitHub repository maintenance.
 
 ## The Problem
