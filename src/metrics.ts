@@ -98,5 +98,5 @@ class MetricsCollector {
   }
 }
 
-// Singleton instance
+// Singleton instance — imported by index.ts for the /metrics endpoint
 export const metrics = new MetricsCollector();
