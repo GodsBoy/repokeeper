@@ -4,6 +4,7 @@ import { createAIProvider } from './ai/index.js';
 import { GitHubClient } from './github/client.js';
 import { createWebhookHandler } from './webhook/handler.js';
 import { log } from './logger.js';
+import { metrics } from './metrics.js';
 
 async function main(): Promise<void> {
   const config = await loadConfig();
@@ -26,6 +27,10 @@ async function main(): Promise<void> {
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', version: '0.1.0' });
+  });
+
+  app.get('/metrics', (_req, res) => {
+    res.json(metrics.getSnapshot());
   });
 
   app.listen(config.port, () => {
