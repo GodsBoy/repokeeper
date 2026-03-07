@@ -1,8 +1,11 @@
 # RepoKeeper
 
 [![CI](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](https://hub.docker.com/)
 
-An open source, locally-running AI agent for GitHub repository maintenance.
+An open source, self-hosted AI agent for GitHub repository maintenance. Deploy on a VPS and let it handle issue triage, PR summarisation, and code review across all your repos.
 
 ## Demo
 
@@ -16,14 +19,15 @@ Maintainers are drowning. AI-generated pull requests, duplicate issues, low-effo
 
 ## What RepoKeeper Does
 
-RepoKeeper connects to your GitHub repository via webhooks and handles the boring parts autonomously:
+RepoKeeper connects to your GitHub repositories via webhooks and handles the boring parts autonomously:
 
 - **Issue Triage** — Automatically classifies new issues (bug, feature, question, docs, invalid), detects duplicates, applies labels, and posts helpful responses
 - **PR Summarisation** — Generates plain-English summaries of pull requests with per-file descriptions, flags breaking changes, and applies size labels
 - **Code Review** — Codebase-aware AI code review with line-by-line GitHub review comments, test gap detection, configurable focus areas, and review memory
+- **Multi-Repo** — Manage multiple repositories from a single instance with per-repo configuration
 - **AI-Powered** — Uses Claude, GPT, or Ollama (your choice) to understand context and generate human-quality responses
 - **Model-Agnostic** — Switch AI providers with a single config change — no vendor lock-in
-- **Runs Locally** — Your code and data stay on your machine. No SaaS middleman.
+- **Self-Hosted** — Your code and data stay on your server. No SaaS middleman. Deploy on any VPS.
 
 ## Quick Start
 
@@ -65,30 +69,82 @@ pnpm start
 
 RepoKeeper is now listening for GitHub events. Open an issue or PR to see it in action.
 
-## Docker Quick Start
+## Production Deployment
 
-### 1. Configure
+For production use, deploy RepoKeeper on a VPS with a public IP and HTTPS. We provide two deployment methods:
+
+- **Docker Compose** (recommended) — Nginx reverse proxy with automatic Let's Encrypt HTTPS
+- **Systemd** — Direct Node.js service for non-Docker environments
+
+See the full **[Production Deployment Guide](docs/deployment.md)** for step-by-step instructions.
+
+### Docker Quick Start (Production)
+
+```bash
+cp .env.production.example .env   # Configure your settings
+cp repokeeper.config.example.ts repokeeper.config.ts
+
+# Get SSL certificate
+DOMAIN=repokeeper.example.com EMAIL=you@example.com ./deploy/init-letsencrypt.sh
+
+# Start the stack
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Docker Quick Start (Development)
 
 ```bash
 cp repokeeper.config.example.ts repokeeper.config.ts
 cp .env.example .env
-```
-
-Edit both files with your settings.
-
-### 2. Run with Docker Compose
-
-```bash
 docker compose up -d
 ```
 
-This builds the image, mounts your config file, and reads environment variables from `.env`. RepoKeeper will be available on port 3001 (or the `PORT` value in your `.env`).
+## Multi-Repo Configuration
 
-To rebuild after code changes:
+RepoKeeper can manage multiple repositories from a single instance. Add a `repos` array to your config:
 
-```bash
-docker compose up -d --build
+```typescript
+export default {
+  github: {
+    token: process.env.GITHUB_TOKEN,
+    webhookSecret: process.env.GITHUB_WEBHOOK_SECRET,
+  },
+  ai: {
+    provider: 'claude' as const,
+    model: 'claude-sonnet-4-6',
+  },
+  // Global defaults
+  triage: { enabled: true, duplicateThreshold: 0.85 },
+  prSummariser: { enabled: true },
+  codeReview: { enabled: true },
+
+  // Per-repo overrides
+  repos: [
+    {
+      owner: 'my-org',
+      repo: 'frontend',
+      codeReview: { focus: ['security', 'performance', 'accessibility'] },
+    },
+    {
+      owner: 'my-org',
+      repo: 'api',
+      codeReview: { focus: ['security', 'breaking-changes'] },
+      ai: { model: 'gpt-4o' },
+    },
+    {
+      owner: 'my-org',
+      repo: 'docs',
+      codeReview: { enabled: false },
+      triage: { enabled: true },
+    },
+  ],
+  port: 3001,
+};
 ```
+
+Each repo inherits the global settings and can override `triage`, `prSummariser`, `codeReview`, and `ai`. Set up one webhook per repo pointing to the same RepoKeeper instance — it routes events automatically.
+
+Single-repo configs (with `github.owner` and `github.repo`) still work exactly as before.
 
 ## Configuration Reference
 
@@ -98,8 +154,9 @@ All configuration lives in `repokeeper.config.ts`:
 |---|---|---|---|
 | `github.token` | `string` | `$GITHUB_TOKEN` | GitHub personal access token with `repo` scope |
 | `github.webhookSecret` | `string` | `$GITHUB_WEBHOOK_SECRET` | Secret for validating webhook signatures |
-| `github.owner` | `string` | — | Repository owner (org or user) |
-| `github.repo` | `string` | — | Repository name |
+| `github.owner` | `string` | — | Repository owner (single-repo mode) |
+| `github.repo` | `string` | — | Repository name (single-repo mode) |
+| `repos` | `RepoEntry[]` | — | Array of repos with per-repo overrides (multi-repo mode) |
 | `ai.provider` | `"claude" \| "openai" \| "ollama"` | `"claude"` | Which AI provider to use |
 | `ai.model` | `string` | `"claude-sonnet-4-6"` | Model name for the chosen provider |
 | `triage.enabled` | `boolean` | `true` | Enable/disable issue triage |
@@ -146,7 +203,7 @@ Security-sensitive settings (`github.token`, `github.webhookSecret`, `port`) can
 | Provider | Env Variable | Notes |
 |---|---|---|
 | **Claude** (Anthropic) | `ANTHROPIC_API_KEY` | Default. Best quality for code understanding. |
-| **GPT** (OpenAI) | `OPENAI_API_KEY` | Solid alternative. |
+| **GPT** (OpenAI) | `OPENAI_API_KEY` | Solid alternative. Supports `OPENAI_BASE_URL` for custom endpoints. |
 | **Ollama** | `OLLAMA_URL` | Free, local inference. Default URL: `http://localhost:11434` |
 
 ## Code Review
@@ -177,27 +234,66 @@ The code review feature works with all three AI providers. Use Ollama for comple
 ## Architecture
 
 ```
-GitHub Webhook → Express Server → Event Router
-                                      │
-                      ┌───────────────┼───────────────┐
-                      │               │               │
-                Issue Triage    PR Summariser     Code Review
-                      │               │               │
-               ┌──────┴──────┐  ┌─────┴─────┐  ┌─────┴──────┐
-               │             │  │           │  │            │
-          Classifier  Duplicate Summariser Labeler Context  Hunk
-               │      Detector     │          Builder  Tracker
-               └──────┬──────┘    │            │         │
-                      │           │        Memory    Comment
-                      │           │            │     Poster
-                      └───────────┼────────────┘       │
-                                  │                    │
-                             AI Provider ←─────────────┘
-                           (Claude/GPT/Ollama)
-                                  │
-                             GitHub API
-                    (labels, comments, reviews)
+                          ┌─────────────────────┐
+                          │   GitHub Webhooks    │
+                          │  (one or more repos) │
+                          └──────────┬──────────┘
+                                     │
+                          ┌──────────▼──────────┐
+                          │   Nginx (HTTPS)     │
+                          │   + Rate Limiting   │
+                          └──────────┬──────────┘
+                                     │
+                          ┌──────────▼──────────┐
+                          │   Express Server    │
+                          │   /webhook          │
+                          │   /health           │
+                          │   /metrics          │
+                          └──────────┬──────────┘
+                                     │
+                          ┌──────────▼──────────┐
+                          │   Multi-Repo Router │
+                          │  (payload routing)  │
+                          └──────────┬──────────┘
+                                     │
+               ┌─────────────────────┼─────────────────────┐
+               │                     │                     │
+    ┌──────────▼─────────┐ ┌────────▼────────┐ ┌─────────▼─────────┐
+    │   Issue Triage     │ │ PR Summariser   │ │   Code Review     │
+    │                    │ │                 │ │                   │
+    │ - Classifier       │ │ - Summariser    │ │ - Context Builder │
+    │ - Duplicate Detect │ │ - Labeler       │ │ - Hunk Tracker    │
+    │ - Auto-Responder   │ │ - Release Notes │ │ - Review Memory   │
+    └────────┬───────────┘ └────────┬────────┘ │ - Comment Poster  │
+             │                      │          └────────┬──────────┘
+             └──────────────────────┼───────────────────┘
+                                    │
+                         ┌──────────▼──────────┐
+                         │    AI Provider      │
+                         │ (Claude/GPT/Ollama) │
+                         └──────────┬──────────┘
+                                    │
+                         ┌──────────▼──────────┐
+                         │    GitHub API       │
+                         │ (labels, comments,  │
+                         │  reviews)           │
+                         └─────────────────────┘
 ```
+
+## Why RepoKeeper Over GitHub Copilot/Agentic Workflows?
+
+| | RepoKeeper | GitHub Agentic Workflows |
+|---|---|---|
+| **Cost** | Free and open source | $0.002/min compute (adds up fast) |
+| **Hosting** | Self-hosted on your VPS | GitHub Actions runners |
+| **AI Models** | Any: Claude, GPT, Ollama, etc. | Locked to GitHub's choice |
+| **Platforms** | GitHub (GitLab/Gitea planned) | GitHub only |
+| **Multi-Repo** | Single instance, many repos | Per-repo setup |
+| **Privacy** | Your server, your data | Code sent to GitHub's AI |
+| **Maturity** | Production-ready | Technical preview |
+| **Customisation** | Full config, per-repo overrides, YAML | Limited |
+
+RepoKeeper gives you full control: run it on a $5/month VPS, use your preferred AI model, and manage all your repos from one place.
 
 ## Development
 
