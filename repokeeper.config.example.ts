@@ -17,6 +17,7 @@ export default {
   prSummariser: {
     enabled: true,
     minDiffLines: 50,
+    generateReleaseNotes: true,
   },
   port: 3001,
 };

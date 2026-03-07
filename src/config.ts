@@ -17,6 +17,7 @@ export interface RepoKeeperConfig {
   prSummariser: {
     enabled: boolean;
     minDiffLines: number;
+    generateReleaseNotes: boolean;
   };
   port: number;
 }
@@ -40,6 +41,7 @@ const defaults: RepoKeeperConfig = {
   prSummariser: {
     enabled: true,
     minDiffLines: 50,
+    generateReleaseNotes: true,
   },
   port: 3001,
 };
