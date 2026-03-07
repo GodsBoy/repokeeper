@@ -30,6 +30,7 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@octokit/rest": "^21.1.0",
     "express": "^5.0.1",
+    "express-rate-limit": "^8.3.0",
     "js-yaml": "^4.1.1",
     "openai": "^4.80.0"
   },

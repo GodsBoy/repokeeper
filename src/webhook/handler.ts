@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { verifySignature } from './verify.js';
 import { getConfig, resolveRepoConfig } from '../config.js';
 import { log } from '../logger.js';
+import { recordEvent } from '../metrics.js';
 import { handleIssueOpened } from '../triage/responder.js';
 import { handlePullRequest, handlePullRequestMerged } from '../pr/summariser.js';
 import { handleCodeReview, handleCodeReviewMerged } from '../review/reviewer.js';
@@ -57,6 +58,7 @@ export function createWebhookHandler(ai: AIProvider, _defaultGithub: GitHubClien
     const github = new GitHubClient(config.github);
 
     log('info', `Received webhook: ${eventKey} for ${repoOwner}/${repoName}`);
+    recordEvent(eventKey);
 
     try {
       switch (eventKey) {
