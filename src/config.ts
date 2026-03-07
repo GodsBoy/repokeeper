@@ -23,6 +23,12 @@ export interface RepoKeeperConfig {
     minDiffLines: number;
     generateReleaseNotes: boolean;
   };
+  codeReview: {
+    enabled: boolean;
+    focus: string[];
+    maxContextFiles: number;
+    minDiffLines: number;
+  };
   port: number;
 }
 
@@ -46,6 +52,12 @@ const defaults: RepoKeeperConfig = {
     enabled: true,
     minDiffLines: 50,
     generateReleaseNotes: true,
+  },
+  codeReview: {
+    enabled: true,
+    focus: ['security', 'performance', 'test-coverage', 'breaking-changes'],
+    maxContextFiles: 5,
+    minDiffLines: 10,
   },
   port: 3001,
 };
@@ -115,7 +127,7 @@ export async function fetchRepoConfig(
 }
 
 // Repo-specific keys that the YAML config is allowed to override
-const REPO_OVERRIDE_KEYS = ['triage', 'prSummariser', 'ai'] as const;
+const REPO_OVERRIDE_KEYS = ['triage', 'prSummariser', 'ai', 'codeReview'] as const;
 
 export function mergeRepoConfig(
   base: RepoKeeperConfig,

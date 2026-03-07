@@ -7,6 +7,7 @@ const baseConfig: RepoKeeperConfig = {
   ai: { provider: 'claude', model: 'claude-sonnet-4-6' },
   triage: { enabled: true, duplicateThreshold: 0.85, minimumBodyLength: 100 },
   prSummariser: { enabled: true, minDiffLines: 50, generateReleaseNotes: true },
+  codeReview: { enabled: true, focus: ['security', 'performance', 'test-coverage', 'breaking-changes'], maxContextFiles: 5, minDiffLines: 10 },
   port: 3001,
 };
 
