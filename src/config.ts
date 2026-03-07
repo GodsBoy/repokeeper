@@ -2,6 +2,18 @@ import yaml from 'js-yaml';
 import { Octokit } from '@octokit/rest';
 import { log } from './logger.js';
 
+export interface RepoOverrides {
+  triage?: Partial<RepoKeeperConfig['triage']>;
+  prSummariser?: Partial<RepoKeeperConfig['prSummariser']>;
+  codeReview?: Partial<RepoKeeperConfig['codeReview']>;
+  ai?: Partial<RepoKeeperConfig['ai']>;
+}
+
+export interface RepoEntry extends RepoOverrides {
+  owner: string;
+  repo: string;
+}
+
 export interface RepoKeeperConfig {
   github: {
     token: string;
@@ -9,6 +21,7 @@ export interface RepoKeeperConfig {
     owner: string;
     repo: string;
   };
+  repos?: RepoEntry[];
   ai: {
     provider: 'claude' | 'openai' | 'ollama';
     model: string;
@@ -75,11 +88,13 @@ export async function loadConfig(): Promise<RepoKeeperConfig> {
 
   validate(config);
 
-  // Try to load per-repo YAML config (repo YAML overrides local config for repo-specific keys)
-  const repoYaml = await fetchRepoConfig(config.github);
-  if (repoYaml) {
-    config = mergeRepoConfig(config, repoYaml);
-    log('info', 'Loaded per-repo config from .github/repokeeper.yml');
+  // For single-repo mode, try to load per-repo YAML config
+  if (!config.repos || config.repos.length === 0) {
+    const repoYaml = await fetchRepoConfig(config.github);
+    if (repoYaml) {
+      config = mergeRepoConfig(config, repoYaml);
+      log('info', 'Loaded per-repo config from .github/repokeeper.yml');
+    }
   }
 
   return config;
@@ -89,6 +104,40 @@ export function getConfig(): RepoKeeperConfig {
   return config;
 }
 
+export function resolveRepoConfig(owner: string, repo: string): RepoKeeperConfig {
+  const base = getConfig();
+
+  if (!base.repos || base.repos.length === 0) {
+    return base;
+  }
+
+  const match = base.repos.find(
+    (r) => r.owner.toLowerCase() === owner.toLowerCase() && r.repo.toLowerCase() === repo.toLowerCase(),
+  );
+
+  if (!match) {
+    return base;
+  }
+
+  // Merge repo-specific overrides onto the global config
+  let resolved = { ...base, github: { ...base.github, owner: match.owner, repo: match.repo } };
+
+  if (match.triage) {
+    resolved = { ...resolved, triage: deepMerge(base.triage, match.triage) };
+  }
+  if (match.prSummariser) {
+    resolved = { ...resolved, prSummariser: deepMerge(base.prSummariser, match.prSummariser) };
+  }
+  if (match.codeReview) {
+    resolved = { ...resolved, codeReview: deepMerge(base.codeReview, match.codeReview) };
+  }
+  if (match.ai) {
+    resolved = { ...resolved, ai: deepMerge(base.ai, match.ai) };
+  }
+
+  return resolved;
+}
+
 function validate(cfg: RepoKeeperConfig): void {
   if (!cfg.github.token) {
     throw new Error('GITHUB_TOKEN is required (set via env or config)');
@@ -96,8 +145,22 @@ function validate(cfg: RepoKeeperConfig): void {
   if (!cfg.github.webhookSecret) {
     throw new Error('GITHUB_WEBHOOK_SECRET is required (set via env or config)');
   }
-  if (!cfg.github.owner || !cfg.github.repo) {
-    throw new Error('github.owner and github.repo are required in config');
+
+  const hasRepos = cfg.repos && cfg.repos.length > 0;
+  const hasSingleRepo = cfg.github.owner && cfg.github.repo;
+
+  if (!hasRepos && !hasSingleRepo) {
+    throw new Error(
+      'Either github.owner/github.repo or repos[] is required in config',
+    );
+  }
+
+  if (hasRepos) {
+    for (const r of cfg.repos!) {
+      if (!r.owner || !r.repo) {
+        throw new Error('Each entry in repos[] must have owner and repo');
+      }
+    }
   }
 }
 

@@ -31,8 +31,17 @@ async function main(): Promise<void> {
   app.listen(config.port, () => {
     log('info', `RepoKeeper listening on port ${config.port}`);
     log('info', `AI provider: ${config.ai.provider} (${config.ai.model})`);
-    log('info', `Triage: ${config.triage.enabled ? 'enabled' : 'disabled'}`);
-    log('info', `PR summariser: ${config.prSummariser.enabled ? 'enabled' : 'disabled'}`);
+
+    if (config.repos && config.repos.length > 0) {
+      log('info', `Multi-repo mode: ${config.repos.length} repo(s) configured`);
+      for (const r of config.repos) {
+        log('info', `  - ${r.owner}/${r.repo}`);
+      }
+    } else {
+      log('info', `Single-repo mode: ${config.github.owner}/${config.github.repo}`);
+      log('info', `Triage: ${config.triage.enabled ? 'enabled' : 'disabled'}`);
+      log('info', `PR summariser: ${config.prSummariser.enabled ? 'enabled' : 'disabled'}`);
+    }
   });
 }
 

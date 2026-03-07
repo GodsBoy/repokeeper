@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRepoConfig, deepMerge } from '../src/config.js';
+import { mergeRepoConfig, deepMerge, resolveRepoConfig } from '../src/config.js';
 import type { RepoKeeperConfig } from '../src/config.js';
 
 const baseConfig: RepoKeeperConfig = {
@@ -61,5 +61,17 @@ describe('mergeRepoConfig', () => {
   it('ignores empty YAML', () => {
     const result = mergeRepoConfig(baseConfig, {});
     expect(result).toEqual(baseConfig);
+  });
+});
+
+describe('resolveRepoConfig', () => {
+  it('returns base config in single-repo mode', async () => {
+    // resolveRepoConfig uses getConfig() internally, so we test it via the module
+    // by importing and calling it directly with a config that has no repos
+    const { resolveRepoConfig: resolve } = await import('../src/config.js');
+    // Without repos array, it should return the global config
+    const result = resolve('owner', 'repo');
+    expect(result).toBeDefined();
+    expect(result.github.token).toBeDefined();
   });
 });

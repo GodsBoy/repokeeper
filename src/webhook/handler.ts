@@ -1,16 +1,16 @@
 import type { Request, Response } from 'express';
 import { verifySignature } from './verify.js';
-import { getConfig } from '../config.js';
+import { getConfig, resolveRepoConfig } from '../config.js';
 import { log } from '../logger.js';
 import { handleIssueOpened } from '../triage/responder.js';
 import { handlePullRequest, handlePullRequestMerged } from '../pr/summariser.js';
 import { handleCodeReview, handleCodeReviewMerged } from '../review/reviewer.js';
 import type { AIProvider } from '../ai/provider.js';
-import type { GitHubClient } from '../github/client.js';
+import { GitHubClient } from '../github/client.js';
 
-export function createWebhookHandler(ai: AIProvider, github: GitHubClient) {
+export function createWebhookHandler(ai: AIProvider, _defaultGithub: GitHubClient) {
   return async (req: Request, res: Response): Promise<void> => {
-    const config = getConfig();
+    const globalConfig = getConfig();
     const signature = req.headers['x-hub-signature-256'] as string | undefined;
     const rawBody = (req as Request & { rawBody?: string }).rawBody;
 
@@ -19,7 +19,7 @@ export function createWebhookHandler(ai: AIProvider, github: GitHubClient) {
       return;
     }
 
-    if (!verifySignature(rawBody, signature, config.github.webhookSecret)) {
+    if (!verifySignature(rawBody, signature, globalConfig.github.webhookSecret)) {
       log('warn', 'Invalid webhook signature');
       res.status(401).json({ error: 'Invalid signature' });
       return;
@@ -29,7 +29,34 @@ export function createWebhookHandler(ai: AIProvider, github: GitHubClient) {
     const action = req.body?.action as string;
     const eventKey = `${event}.${action}`;
 
-    log('info', `Received webhook: ${eventKey}`);
+    // Route to the correct repo config based on the webhook payload
+    const repoOwner = req.body?.repository?.owner?.login as string | undefined;
+    const repoName = req.body?.repository?.name as string | undefined;
+
+    if (!repoOwner || !repoName) {
+      log('warn', `Webhook ${eventKey} missing repository info`);
+      res.status(400).json({ error: 'Missing repository info in payload' });
+      return;
+    }
+
+    const config = resolveRepoConfig(repoOwner, repoName);
+
+    // Check if this repo is configured (for multi-repo mode)
+    if (globalConfig.repos && globalConfig.repos.length > 0) {
+      const match = globalConfig.repos.find(
+        (r) => r.owner.toLowerCase() === repoOwner.toLowerCase() && r.repo.toLowerCase() === repoName.toLowerCase(),
+      );
+      if (!match) {
+        log('debug', `Ignoring webhook for unconfigured repo ${repoOwner}/${repoName}`);
+        res.status(200).json({ ok: true, skipped: true });
+        return;
+      }
+    }
+
+    // Create a GitHubClient scoped to this repo
+    const github = new GitHubClient(config.github);
+
+    log('info', `Received webhook: ${eventKey} for ${repoOwner}/${repoName}`);
 
     try {
       switch (eventKey) {
