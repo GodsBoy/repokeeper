@@ -27,7 +27,7 @@ export async function handleIssueOpened(
   // Check for duplicates first
   const openIssues = await github.listOpenIssues();
   const existingIssues = openIssues.filter((i) => i.number !== number);
-  const duplicates = findDuplicates(title, bodyText, existingIssues, config.triage.duplicateThreshold);
+  const duplicates = await findDuplicates(title, bodyText, existingIssues, config.triage.duplicateThreshold, ai);
 
   if (duplicates.length > 0) {
     const dup = duplicates[0];
