@@ -24,6 +24,8 @@
 
 ---
 
+![RepoKeeper Hero](docs/images/repokeeper-hero.png)
+
 ## Demo
 
 See [demo/demo.cast](demo/demo.cast) — play with: `asciinema play demo/demo.cast`
