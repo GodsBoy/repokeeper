@@ -2,9 +2,9 @@
 
 # 🤖 RepoKeeper
 
-**AI-powered GitHub repository maintenance on autopilot.**
+**Your GitHub maintenance on autopilot. Self-hosted. Model-agnostic. Free.**
 
-*Deploy on a VPS. Let it handle issue triage, PR summaries, duplicate detection, and code review across all your repos.*
+*Handle issue triage, PR summaries, duplicate detection, and code review across all your repos — automatically.*
 
 [![CI](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/GodsBoy/repokeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -17,8 +17,11 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/GodsBoy/repokeeper/pulls)
+![Maintained by RepoKeeper](https://img.shields.io/badge/maintained%20by-RepoKeeper-blue)
 
 [Getting Started](#quick-start) · [Features](#what-repokeeper-does) · [Deploy to VPS](#production-deployment) · [Multi-Repo](#multi-repo-configuration) · [Contributing](#contributing)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
 </div>
 
@@ -30,6 +33,7 @@
 
 See [demo/demo.cast](demo/demo.cast) — play with: `asciinema play demo/demo.cast`
 
+> **Live demo:** This repository is maintained by RepoKeeper itself — every issue, PR, and review goes through the same pipeline you can deploy in minutes.
 
 ## The Problem
 
