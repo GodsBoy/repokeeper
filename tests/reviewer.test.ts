@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { parseImports } from '../src/review/context-builder.js';
 import { parseDiffHunks, isAlreadyReviewed, markReviewed, getReviewedShas, cleanupPR } from '../src/review/hunk-tracker.js';
 import { getAcceptedPatterns, addAcceptedPattern, learnFromMergedPR, formatAcceptedPatternsPrompt } from '../src/review/memory.js';
+import { matchesIgnorePattern, filterIgnoredFiles } from '../src/review/reviewer.js';
 import { existsSync, unlinkSync, mkdirSync } from 'node:fs';
 
 // --- context-builder tests ---
@@ -267,6 +268,87 @@ describe('comment-poster', () => {
     const { postReview, getReviewComments } = await import('../src/review/comment-poster.js');
     expect(typeof postReview).toBe('function');
     expect(typeof getReviewComments).toBe('function');
+  });
+});
+
+// --- review file filtering tests ---
+
+describe('matchesIgnorePattern', () => {
+  it('matches exact file paths', () => {
+    expect(matchesIgnorePattern('package-lock.json', 'package-lock.json')).toBe(true);
+  });
+
+  it('matches single wildcard patterns', () => {
+    expect(matchesIgnorePattern('src/utils.test.ts', 'src/*.test.ts')).toBe(true);
+    expect(matchesIgnorePattern('src/deep/utils.test.ts', 'src/*.test.ts')).toBe(false);
+  });
+
+  it('matches globstar patterns', () => {
+    expect(matchesIgnorePattern('src/deep/nested/file.test.ts', '**/*.test.ts')).toBe(true);
+    expect(matchesIgnorePattern('file.test.ts', '**/*.test.ts')).toBe(true);
+  });
+
+  it('matches directory globstar patterns', () => {
+    expect(matchesIgnorePattern('dist/index.js', 'dist/**')).toBe(true);
+    expect(matchesIgnorePattern('dist/sub/file.js', 'dist/**')).toBe(true);
+    expect(matchesIgnorePattern('src/dist/file.js', 'dist/**')).toBe(false);
+  });
+
+  it('matches single character wildcard', () => {
+    expect(matchesIgnorePattern('src/a.ts', 'src/?.ts')).toBe(true);
+    expect(matchesIgnorePattern('src/ab.ts', 'src/?.ts')).toBe(false);
+  });
+
+  it('does not match unrelated files', () => {
+    expect(matchesIgnorePattern('src/index.ts', '**/*.test.ts')).toBe(false);
+    expect(matchesIgnorePattern('README.md', 'dist/**')).toBe(false);
+  });
+
+  it('handles dots in patterns correctly', () => {
+    expect(matchesIgnorePattern('.env', '.env')).toBe(true);
+    expect(matchesIgnorePattern('xenv', '.env')).toBe(false);
+  });
+});
+
+describe('filterIgnoredFiles', () => {
+  const files = [
+    'src/index.ts',
+    'src/utils.test.ts',
+    'dist/index.js',
+    'package-lock.json',
+    'docs/README.md',
+  ];
+
+  it('returns all files when no ignore patterns', () => {
+    expect(filterIgnoredFiles(files, [])).toEqual(files);
+  });
+
+  it('filters files matching a single pattern', () => {
+    const result = filterIgnoredFiles(files, ['dist/**']);
+    expect(result).not.toContain('dist/index.js');
+    expect(result).toHaveLength(4);
+  });
+
+  it('filters files matching multiple patterns', () => {
+    const result = filterIgnoredFiles(files, ['dist/**', 'package-lock.json']);
+    expect(result).not.toContain('dist/index.js');
+    expect(result).not.toContain('package-lock.json');
+    expect(result).toHaveLength(3);
+  });
+
+  it('filters test files with globstar', () => {
+    const result = filterIgnoredFiles(files, ['**/*.test.ts']);
+    expect(result).not.toContain('src/utils.test.ts');
+    expect(result).toContain('src/index.ts');
+  });
+
+  it('returns all files when patterns match nothing', () => {
+    const result = filterIgnoredFiles(files, ['**/*.xyz']);
+    expect(result).toEqual(files);
+  });
+
+  it('handles undefined/empty ignore patterns gracefully', () => {
+    expect(filterIgnoredFiles(files, undefined as unknown as string[])).toEqual(files);
   });
 });
 

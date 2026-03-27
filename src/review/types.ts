@@ -36,6 +36,7 @@ export interface CodeReviewConfig {
   focus: string[];
   maxContextFiles: number;
   minDiffLines: number;
+  ignore?: string[];
 }
 
 export interface PRReviewPayload {

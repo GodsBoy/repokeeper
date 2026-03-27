@@ -9,6 +9,35 @@ import { isAlreadyReviewed, markReviewed, parseDiffHunks, cleanupPR } from './hu
 import { getAcceptedPatterns, formatAcceptedPatternsPrompt, learnFromMergedPR } from './memory.js';
 import type { PRReviewPayload, ReviewResult, ReviewFinding, CodeReviewConfig, EnrichedFile } from './types.js';
 
+export function matchesIgnorePattern(file: string, pattern: string): boolean {
+  const regexStr = pattern
+    .replace(/\./g, '\\.')
+    .replace(/\*\*\//g, '{{GLOBSTAR_SLASH}}')
+    .replace(/\*\*/g, '{{GLOBSTAR}}')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\?/g, '[^/]')
+    .replace(/{{GLOBSTAR_SLASH}}/g, '(?:.+/)?')
+    .replace(/{{GLOBSTAR}}/g, '.*');
+  return new RegExp(`^${regexStr}$`).test(file);
+}
+
+export function filterIgnoredFiles(files: string[], ignorePatterns: string[]): string[] {
+  if (!ignorePatterns || ignorePatterns.length === 0) return files;
+  return files.filter((file) => !ignorePatterns.some((pattern) => matchesIgnorePattern(file, pattern)));
+}
+
+function filterDiffByFiles(diff: string, allowedFiles: string[]): string {
+  const allowedSet = new Set(allowedFiles);
+  const sections = diff.split(/(?=^diff --git )/m);
+  return sections
+    .filter((section) => {
+      const match = section.match(/^diff --git a\/(.+?) b\//);
+      if (!match) return false;
+      return allowedSet.has(match[1]);
+    })
+    .join('');
+}
+
 const DEFAULT_REVIEW_CONFIG: CodeReviewConfig = {
   enabled: true,
   focus: ['security', 'performance', 'test-coverage', 'breaking-changes'],
@@ -154,11 +183,18 @@ export async function handleCodeReview(
   // Get changed file names from hunks
   const changedFiles = [...new Set(hunks.map((h) => h.file))];
 
+  // Filter out ignored files
+  const reviewableFiles = filterIgnoredFiles(changedFiles, reviewConfig.ignore ?? []);
+  if (reviewableFiles.length === 0) {
+    log('info', `PR #${prNumber}: all changed files match ignore patterns, skipping review`);
+    return;
+  }
+
   // Build codebase context
   let enrichedFiles: EnrichedFile[] = [];
   try {
     enrichedFiles = await buildContext(
-      changedFiles,
+      reviewableFiles,
       repository.clone_url,
       owner,
       repo,
@@ -174,11 +210,12 @@ export async function handleCodeReview(
   // Get accepted patterns from memory
   const acceptedPatterns = formatAcceptedPatternsPrompt(getAcceptedPatterns());
 
-  // Truncate diff for AI
+  // Filter diff to only include reviewable files and truncate for AI
+  const filteredDiff = filterDiffByFiles(diff, reviewableFiles);
   const maxDiffChars = 30_000;
-  const truncatedDiff = diff.length > maxDiffChars
-    ? diff.slice(0, maxDiffChars) + '\n\n... (diff truncated)'
-    : diff;
+  const truncatedDiff = filteredDiff.length > maxDiffChars
+    ? filteredDiff.slice(0, maxDiffChars) + '\n\n... (diff truncated)'
+    : filteredDiff;
 
   // Build prompt and call AI
   const prompt = buildReviewPrompt(truncatedDiff, enrichedFiles, reviewConfig, acceptedPatterns);
