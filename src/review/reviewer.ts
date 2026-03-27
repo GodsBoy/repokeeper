@@ -10,8 +10,9 @@ import { getAcceptedPatterns, formatAcceptedPatternsPrompt, learnFromMergedPR } 
 import type { PRReviewPayload, ReviewResult, ReviewFinding, CodeReviewConfig, EnrichedFile } from './types.js';
 
 export function matchesIgnorePattern(file: string, pattern: string): boolean {
+  // Escape regex metacharacters first (except glob chars * ? which we handle separately)
   const regexStr = pattern
-    .replace(/\./g, '\\.')
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
     .replace(/\*\*\//g, '{{GLOBSTAR_SLASH}}')
     .replace(/\*\*/g, '{{GLOBSTAR}}')
     .replace(/\*/g, '[^/]*')
@@ -36,6 +37,18 @@ function filterDiffByFiles(diff: string, allowedFiles: string[]): string {
       return allowedSet.has(match[1]);
     })
     .join('');
+}
+
+export function buildCommitStatus(findings: ReviewFinding[]): { state: 'success' | 'failure'; description: string } {
+  const hasBlocking = findings.some((f) => f.severity === 'BLOCKING');
+  if (hasBlocking) {
+    const count = findings.filter((f) => f.severity === 'BLOCKING').length;
+    return { state: 'failure', description: `${count} blocking issue(s) found` };
+  }
+  if (findings.length > 0) {
+    return { state: 'success', description: `${findings.length} non-blocking finding(s)` };
+  }
+  return { state: 'success', description: 'No issues found' };
 }
 
 const DEFAULT_REVIEW_CONFIG: CodeReviewConfig = {
@@ -228,14 +241,8 @@ export async function handleCodeReview(
 
   // Post commit status if enabled
   if (reviewConfig.commitStatus) {
-    const hasBlocking = result.findings.some((f) => f.severity === 'BLOCKING');
-    const statusState = hasBlocking ? 'failure' : 'success';
-    const description = hasBlocking
-      ? `${result.findings.filter((f) => f.severity === 'BLOCKING').length} blocking issue(s) found`
-      : result.findings.length > 0
-        ? `${result.findings.length} non-blocking finding(s)`
-        : 'No issues found';
-    await github.createCommitStatus(headSha, statusState, description);
+    const { state, description } = buildCommitStatus(result.findings);
+    await github.createCommitStatus(headSha, state, description);
   }
 
   // Mark this SHA as reviewed

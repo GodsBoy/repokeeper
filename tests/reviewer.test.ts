@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { parseImports } from '../src/review/context-builder.js';
 import { parseDiffHunks, isAlreadyReviewed, markReviewed, getReviewedShas, cleanupPR } from '../src/review/hunk-tracker.js';
 import { getAcceptedPatterns, addAcceptedPattern, learnFromMergedPR, formatAcceptedPatternsPrompt } from '../src/review/memory.js';
-import { matchesIgnorePattern, filterIgnoredFiles } from '../src/review/reviewer.js';
+import { matchesIgnorePattern, filterIgnoredFiles, buildCommitStatus } from '../src/review/reviewer.js';
 import { existsSync, unlinkSync, mkdirSync } from 'node:fs';
 
 // --- context-builder tests ---
@@ -308,6 +308,13 @@ describe('matchesIgnorePattern', () => {
     expect(matchesIgnorePattern('.env', '.env')).toBe(true);
     expect(matchesIgnorePattern('xenv', '.env')).toBe(false);
   });
+
+  it('escapes regex metacharacters in patterns', () => {
+    expect(matchesIgnorePattern('src/file[1].ts', 'src/file[1].ts')).toBe(true);
+    expect(matchesIgnorePattern('src/file(test).ts', 'src/file(test).ts')).toBe(true);
+    expect(matchesIgnorePattern('src/file+extra.ts', 'src/file+extra.ts')).toBe(true);
+    expect(matchesIgnorePattern('src/fileX.ts', 'src/file[1].ts')).toBe(false);
+  });
 });
 
 describe('filterIgnoredFiles', () => {
@@ -354,69 +361,39 @@ describe('filterIgnoredFiles', () => {
 
 // --- commit status tests ---
 
-describe('commit status logic', () => {
-  // Test the commit status decision logic directly by examining
-  // the conditions that determine success vs failure
-
-  it('identifies BLOCKING findings correctly', () => {
-    const findings = [
-      { file: 'a.ts', line: 1, severity: 'BLOCKING' as const, message: 'Security issue' },
-      { file: 'b.ts', line: 2, severity: 'WARNING' as const, message: 'Code smell' },
-    ];
-    const hasBlocking = findings.some((f) => f.severity === 'BLOCKING');
-    expect(hasBlocking).toBe(true);
-
-    const blockingCount = findings.filter((f) => f.severity === 'BLOCKING').length;
-    expect(blockingCount).toBe(1);
+describe('buildCommitStatus', () => {
+  it('returns failure when BLOCKING findings exist', () => {
+    const result = buildCommitStatus([
+      { file: 'a.ts', line: 1, severity: 'BLOCKING', message: 'Security issue' },
+      { file: 'b.ts', line: 2, severity: 'WARNING', message: 'Code smell' },
+    ]);
+    expect(result.state).toBe('failure');
+    expect(result.description).toBe('1 blocking issue(s) found');
   });
 
-  it('identifies no BLOCKING findings as success', () => {
-    const findings = [
-      { file: 'a.ts', line: 1, severity: 'WARNING' as const, message: 'Code smell' },
-      { file: 'b.ts', line: 2, severity: 'SUGGESTION' as const, message: 'Style' },
-    ];
-    const hasBlocking = findings.some((f) => f.severity === 'BLOCKING');
-    expect(hasBlocking).toBe(false);
+  it('counts multiple BLOCKING findings', () => {
+    const result = buildCommitStatus([
+      { file: 'a.ts', line: 1, severity: 'BLOCKING', message: 'SQL injection' },
+      { file: 'b.ts', line: 2, severity: 'BLOCKING', message: 'Hardcoded secret' },
+      { file: 'c.ts', line: 3, severity: 'WARNING', message: 'Missing error handling' },
+    ]);
+    expect(result.state).toBe('failure');
+    expect(result.description).toBe('2 blocking issue(s) found');
   });
 
-  it('generates correct description for blocking findings', () => {
-    const findings = [
-      { file: 'a.ts', line: 1, severity: 'BLOCKING' as const, message: 'SQL injection' },
-      { file: 'b.ts', line: 2, severity: 'BLOCKING' as const, message: 'Hardcoded secret' },
-      { file: 'c.ts', line: 3, severity: 'WARNING' as const, message: 'Missing error handling' },
-    ];
-    const hasBlocking = findings.some((f) => f.severity === 'BLOCKING');
-    const description = hasBlocking
-      ? `${findings.filter((f) => f.severity === 'BLOCKING').length} blocking issue(s) found`
-      : findings.length > 0
-        ? `${findings.length} non-blocking finding(s)`
-        : 'No issues found';
-    expect(description).toBe('2 blocking issue(s) found');
+  it('returns success with count for non-blocking findings only', () => {
+    const result = buildCommitStatus([
+      { file: 'a.ts', line: 1, severity: 'WARNING', message: 'Code smell' },
+      { file: 'b.ts', line: 2, severity: 'SUGGESTION', message: 'Style' },
+    ]);
+    expect(result.state).toBe('success');
+    expect(result.description).toBe('2 non-blocking finding(s)');
   });
 
-  it('generates correct description for non-blocking findings only', () => {
-    const findings = [
-      { file: 'a.ts', line: 1, severity: 'WARNING' as const, message: 'Code smell' },
-      { file: 'b.ts', line: 2, severity: 'SUGGESTION' as const, message: 'Style' },
-    ];
-    const hasBlocking = findings.some((f) => f.severity === 'BLOCKING');
-    const description = hasBlocking
-      ? `${findings.filter((f) => f.severity === 'BLOCKING').length} blocking issue(s) found`
-      : findings.length > 0
-        ? `${findings.length} non-blocking finding(s)`
-        : 'No issues found';
-    expect(description).toBe('2 non-blocking finding(s)');
-  });
-
-  it('generates correct description when no findings', () => {
-    const findings: Array<{ severity: string }> = [];
-    const hasBlocking = findings.some((f) => f.severity === 'BLOCKING');
-    const description = hasBlocking
-      ? `${findings.filter((f) => f.severity === 'BLOCKING').length} blocking issue(s) found`
-      : findings.length > 0
-        ? `${findings.length} non-blocking finding(s)`
-        : 'No issues found';
-    expect(description).toBe('No issues found');
+  it('returns success with clean message when no findings', () => {
+    const result = buildCommitStatus([]);
+    expect(result.state).toBe('success');
+    expect(result.description).toBe('No issues found');
   });
 });
 
