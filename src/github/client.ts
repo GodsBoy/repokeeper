@@ -125,6 +125,23 @@ export class GitHubClient {
     }));
   }
 
+  async createCommitStatus(
+    sha: string,
+    state: 'success' | 'failure' | 'pending',
+    description: string,
+    context: string = 'repokeeper/review',
+  ): Promise<void> {
+    await this.octokit.repos.createCommitStatus({
+      owner: this.owner,
+      repo: this.repo,
+      sha,
+      state,
+      description,
+      context,
+    });
+    log('info', `Set commit status ${state} on ${sha.slice(0, 7)}: ${description}`);
+  }
+
   private async ensureLabelsExist(labels: string[]): Promise<void> {
     const existing = await this.octokit.paginate(this.octokit.issues.listLabelsForRepo, {
       owner: this.owner,

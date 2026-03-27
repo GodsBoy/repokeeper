@@ -37,6 +37,7 @@ export interface CodeReviewConfig {
   maxContextFiles: number;
   minDiffLines: number;
   ignore?: string[];
+  commitStatus?: boolean;
 }
 
 export interface PRReviewPayload {

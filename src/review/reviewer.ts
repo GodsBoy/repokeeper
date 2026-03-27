@@ -226,6 +226,18 @@ export async function handleCodeReview(
   const octokit = new Octokit({ auth: config.github.token });
   await postReview(octokit, owner, repo, prNumber, headSha, result);
 
+  // Post commit status if enabled
+  if (reviewConfig.commitStatus) {
+    const hasBlocking = result.findings.some((f) => f.severity === 'BLOCKING');
+    const statusState = hasBlocking ? 'failure' : 'success';
+    const description = hasBlocking
+      ? `${result.findings.filter((f) => f.severity === 'BLOCKING').length} blocking issue(s) found`
+      : result.findings.length > 0
+        ? `${result.findings.length} non-blocking finding(s)`
+        : 'No issues found';
+    await github.createCommitStatus(headSha, statusState, description);
+  }
+
   // Mark this SHA as reviewed
   markReviewed(owner, repo, prNumber, headSha);
 
