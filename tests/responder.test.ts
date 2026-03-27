@@ -4,16 +4,18 @@ import type { AIProvider } from '../src/ai/provider.js';
 import type { GitHubClient } from '../src/github/client.js';
 import type { RepoKeeperConfig } from '../src/config.js';
 
+const usage = { inputTokens: 0, outputTokens: 0 };
+
 function createMockAI(classifyResponse: string, commentResponse: string): AIProvider {
   let callCount = 0;
   return {
     complete: async (prompt: string) => {
       // Duplicate detection calls come first, then classify, then comment
-      if (prompt.includes('duplicate issue detector')) return '0.1';
+      if (prompt.includes('duplicate issue detector')) return { text: '0.1', usage };
       callCount++;
       // Even calls = classify, odd calls = comment (roughly)
-      if (prompt.includes('classifier') || prompt.includes('Classify')) return classifyResponse;
-      return commentResponse;
+      if (prompt.includes('classifier') || prompt.includes('Classify')) return { text: classifyResponse, usage };
+      return { text: commentResponse, usage };
     },
   };
 }
@@ -116,8 +118,8 @@ describe('handleIssueOpened', () => {
   it('flags duplicates with possible-duplicate label instead of closing', async () => {
     const ai: AIProvider = {
       complete: async (prompt: string) => {
-        if (prompt.includes('duplicate issue detector')) return '0.85';
-        return 'comment';
+        if (prompt.includes('duplicate issue detector')) return { text: '0.85', usage };
+        return { text: 'comment', usage };
       },
     };
     const github = createMockGithub();

@@ -182,8 +182,8 @@ export async function handleCodeReview(
 
   // Build prompt and call AI
   const prompt = buildReviewPrompt(truncatedDiff, enrichedFiles, reviewConfig, acceptedPatterns);
-  const aiResponse = await ai.complete(prompt);
-  const result = parseAIResponse(aiResponse);
+  const { text: aiResponseText } = await ai.complete(prompt);
+  const result = parseAIResponse(aiResponseText);
 
   // Post review via GitHub API
   const octokit = new Octokit({ auth: config.github.token });

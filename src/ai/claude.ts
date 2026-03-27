@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { AIProvider } from './provider.js';
+import type { AIProvider, AIResponse, AIRequestOptions } from './provider.js';
 
 export class ClaudeProvider implements AIProvider {
   private client: Anthropic;
@@ -14,17 +14,24 @@ export class ClaudeProvider implements AIProvider {
     this.model = model;
   }
 
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string, options?: AIRequestOptions): Promise<AIResponse> {
     const response = await this.client.messages.create({
       model: this.model,
-      max_tokens: 1024,
+      max_tokens: options?.maxTokens ?? 1024,
       messages: [{ role: 'user', content: prompt }],
     });
 
     const block = response.content[0];
-    if (block.type === 'text') {
-      return block.text;
+    if (block.type !== 'text') {
+      throw new Error('Unexpected response type from Claude API');
     }
-    throw new Error('Unexpected response type from Claude API');
+
+    return {
+      text: block.text,
+      usage: {
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+      },
+    };
   }
 }

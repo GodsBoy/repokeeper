@@ -51,7 +51,7 @@ export async function classifyIssue(
   }
 
   const prompt = CLASSIFY_PROMPT.replace('{title}', title).replace('{body}', body || '(empty)');
-  const result = (await ai.complete(prompt)).trim().toLowerCase();
+  const result = (await ai.complete(prompt)).text.trim().toLowerCase();
 
   const valid: IssueCategory[] = ['bug', 'feature', 'question', 'duplicate', 'docs', 'invalid'];
   if (valid.includes(result as IssueCategory)) {

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { AIProvider } from './provider.js';
+import type { AIProvider, AIResponse, AIRequestOptions } from './provider.js';
 
 export class OpenAIProvider implements AIProvider {
   private client: OpenAI;
@@ -15,17 +15,24 @@ export class OpenAIProvider implements AIProvider {
     this.model = model;
   }
 
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string, options?: AIRequestOptions): Promise<AIResponse> {
     const response = await this.client.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1024,
+      max_tokens: options?.maxTokens ?? 1024,
     });
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error('Empty response from OpenAI API');
     }
-    return content;
+
+    return {
+      text: content,
+      usage: {
+        inputTokens: response.usage?.prompt_tokens ?? 0,
+        outputTokens: response.usage?.completion_tokens ?? 0,
+      },
+    };
   }
 }

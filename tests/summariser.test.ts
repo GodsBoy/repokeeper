@@ -4,7 +4,7 @@ import type { AIProvider } from '../src/ai/provider.js';
 import type { RepoKeeperConfig } from '../src/config.js';
 
 function mockAI(response: string): AIProvider {
-  return { complete: vi.fn().mockResolvedValue(response) };
+  return { complete: vi.fn().mockResolvedValue({ text: response, usage: { inputTokens: 0, outputTokens: 0 } }) };
 }
 
 function mockGitHub() {

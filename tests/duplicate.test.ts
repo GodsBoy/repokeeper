@@ -14,17 +14,19 @@ const installIssues = [
   { number: 4, title: 'Add dark mode support', body: 'Please add dark mode theme to the settings page' },
 ];
 
+const usage = { inputTokens: 0, outputTokens: 0 };
+
 function mockAI(response: string): AIProvider {
-  return { complete: async () => response };
+  return { complete: async () => ({ text: response, usage }) };
 }
 
 function mockAIDynamic(responses: Map<string, string>): AIProvider {
   return {
     complete: async (prompt: string) => {
       for (const [key, value] of responses) {
-        if (prompt.includes(key)) return value;
+        if (prompt.includes(key)) return { text: value, usage };
       }
-      return '0.1';
+      return { text: '0.1', usage };
     },
   };
 }
@@ -168,7 +170,7 @@ describe('findDuplicates with AI', () => {
     const countingAI: AIProvider = {
       complete: async () => {
         aiCallCount++;
-        return '0.3';
+        return { text: '0.3', usage };
       },
     };
 

@@ -80,7 +80,7 @@ export async function handlePullRequest(
     .replace('{description}', body || '(no description)')
     .replace('{diff}', truncatedDiff);
 
-  const summary = await ai.complete(prompt);
+  const { text: summary } = await ai.complete(prompt);
 
   // Build the comment
   const fileList = files
@@ -122,7 +122,7 @@ export async function handlePullRequestMerged(
     .replace('{description}', body || '(no description)')
     .replace('{fileSummary}', fileSummary);
 
-  const releaseNotes = await ai.complete(prompt);
+  const { text: releaseNotes } = await ai.complete(prompt);
 
   const comment =
     `## Release Notes\n\n${releaseNotes}\n\n` +

@@ -1,4 +1,10 @@
-import type { AIProvider } from './provider.js';
+import type { AIProvider, AIResponse, AIRequestOptions } from './provider.js';
+
+interface OllamaResponse {
+  response: string;
+  prompt_eval_count?: number;
+  eval_count?: number;
+}
 
 export class OllamaProvider implements AIProvider {
   private url: string;
@@ -9,7 +15,7 @@ export class OllamaProvider implements AIProvider {
     this.model = model;
   }
 
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string, options?: AIRequestOptions): Promise<AIResponse> {
     const response = await fetch(`${this.url}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -17,6 +23,7 @@ export class OllamaProvider implements AIProvider {
         model: this.model,
         prompt,
         stream: false,
+        ...(options?.maxTokens ? { options: { num_predict: options.maxTokens } } : {}),
       }),
     });
 
@@ -24,7 +31,13 @@ export class OllamaProvider implements AIProvider {
       throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = (await response.json()) as { response: string };
-    return data.response;
+    const data = (await response.json()) as OllamaResponse;
+    return {
+      text: data.response,
+      usage: {
+        inputTokens: data.prompt_eval_count ?? 0,
+        outputTokens: data.eval_count ?? 0,
+      },
+    };
   }
 }
