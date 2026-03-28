@@ -41,6 +41,8 @@ export interface RepoKeeperConfig {
     focus: string[];
     maxContextFiles: number;
     minDiffLines: number;
+    ignore?: string[];
+    commitStatus?: boolean;
   };
   port: number;
 }
@@ -71,6 +73,8 @@ const defaults: RepoKeeperConfig = {
     focus: ['security', 'performance', 'test-coverage', 'breaking-changes'],
     maxContextFiles: 5,
     minDiffLines: 10,
+    ignore: [],
+    commitStatus: false,
   },
   port: 3001,
 };

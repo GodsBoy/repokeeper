@@ -87,7 +87,7 @@ async function findDuplicatesWithAI(
       .replace('{existingTitle}', candidate.title)
       .replace('{existingBody}', candidate.body || '(empty)');
 
-    const response = (await ai.complete(prompt)).trim();
+    const response = (await ai.complete(prompt)).text.trim();
     const score = parseFloat(response);
 
     if (!isNaN(score) && score >= 0 && score <= 1 && score >= threshold) {

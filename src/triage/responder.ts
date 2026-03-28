@@ -110,7 +110,7 @@ async function generateComment(
     .replace('{category}', category);
 
   try {
-    const response = (await ai.complete(prompt)).trim();
+    const response = (await ai.complete(prompt)).text.trim();
     // Sanity check: if AI returns something too short or suspicious, use fallback
     if (response.length < 20) {
       return buildFallbackComment(category, title);

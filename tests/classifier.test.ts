@@ -3,7 +3,7 @@ import { classifyIssue, categoryToLabel, isVagueIssue } from '../src/triage/clas
 import type { AIProvider } from '../src/ai/provider.js';
 
 function mockAI(response: string): AIProvider {
-  return { complete: async () => response };
+  return { complete: async () => ({ text: response, usage: { inputTokens: 0, outputTokens: 0 } }) };
 }
 
 describe('isVagueIssue', () => {

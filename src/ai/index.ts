@@ -4,7 +4,7 @@ import { ClaudeProvider } from './claude.js';
 import { OpenAIProvider } from './openai.js';
 import { OllamaProvider } from './ollama.js';
 
-export type { AIProvider } from './provider.js';
+export type { AIProvider, AIResponse, AIUsage, AIRequestOptions } from './provider.js';
 
 export function createAIProvider(config: RepoKeeperConfig['ai']): AIProvider {
   switch (config.provider) {
