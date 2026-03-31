@@ -3,6 +3,7 @@ import type { GitHubClient } from '../github/client.js';
 import type { RepoKeeperConfig } from '../config.js';
 import { classifyIssue, categoryToLabel } from './classifier.js';
 import { findDuplicates } from './duplicate.js';
+import { withAttribution } from '../utils/attribution.js';
 import { log } from '../logger.js';
 
 interface IssuePayload {
@@ -91,7 +92,7 @@ export async function handleIssueOpened(
 
   // Generate contextual response using AI
   const comment = await generateComment(title, bodyText, category, ai);
-  await github.addComment(number, comment);
+  await github.addComment(number, withAttribution(comment, config.attribution));
 
   log('info', `Issue #${number} classified as "${category}", labelled [${labels.join(', ')}]`);
 }

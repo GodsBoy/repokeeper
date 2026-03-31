@@ -19,7 +19,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/GodsBoy/repokeeper/pulls)
 ![Maintained by RepoKeeper](https://img.shields.io/badge/maintained%20by-RepoKeeper-blue)
 
-[Getting Started](#quick-start) · [Features](#what-repokeeper-does) · [Deploy to VPS](#production-deployment) · [Multi-Repo](#multi-repo-configuration) · [Contributing](#contributing)
+[Getting Started](#quick-start) · [Features](#what-repokeeper-does) · [Try it live](#interactive-playground) · [Deploy to VPS](#production-deployment) · [Multi-Repo](#multi-repo-configuration) · [Contributing](#contributing)
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
@@ -34,6 +34,14 @@
 See [demo/demo.cast](demo/demo.cast) — play with: `asciinema play demo/demo.cast`
 
 > **Live demo:** This repository is maintained by RepoKeeper itself — every issue, PR, and review goes through the same pipeline you can deploy in minutes.
+
+## Interactive Playground
+
+**Try it live** — paste a GitHub issue or PR diff and see RepoKeeper's AI in action, no deployment required.
+
+Once running, visit `http://your-server:3001/playground` to try issue triage and PR summarisation instantly.
+
+Set `attribution.playgroundUrl` in your config to link the playground from every AI-generated comment.
 
 ## The Problem
 
@@ -191,6 +199,8 @@ All configuration lives in `repokeeper.config.ts`:
 | `codeReview.focus` | `string[]` | `["security", "performance", "test-coverage", "breaking-changes"]` | Review focus areas |
 | `codeReview.maxContextFiles` | `number` | `5` | Max dependency files to include per changed file |
 | `codeReview.minDiffLines` | `number` | `10` | Minimum added lines to trigger review |
+| `attribution.enabled` | `boolean` | `true` | Add "Powered by RepoKeeper" footer to AI comments |
+| `attribution.playgroundUrl` | `string` | — | Absolute URL to your playground (adds "Try it live" link to footer) |
 | `port` | `number` | `3001` | Port for the webhook server |
 
 ## Per-Repository YAML Config
@@ -269,6 +279,7 @@ The code review feature works with all three AI providers. Use Ollama for comple
                           ┌──────────▼──────────┐
                           │   Express Server    │
                           │   /webhook          │
+                          │   /playground       │
                           │   /health           │
                           │   /metrics          │
                           └──────────┬──────────┘
