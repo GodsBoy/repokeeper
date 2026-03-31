@@ -6,6 +6,7 @@ import { createAIProvider } from './ai/index.js';
 import { GitHubClient } from './github/client.js';
 import { createWebhookHandler } from './webhook/handler.js';
 import { getMetrics } from './metrics.js';
+import { registerPlayground } from './playground.js';
 import { log } from './logger.js';
 
 async function main(): Promise<void> {
@@ -59,6 +60,8 @@ async function main(): Promise<void> {
   app.get('/metrics', (_req, res) => {
     res.json(getMetrics());
   });
+
+  registerPlayground(app, ai, config);
 
   const server = app.listen(config.port, () => {
     log('info', `RepoKeeper listening on port ${config.port}`);
