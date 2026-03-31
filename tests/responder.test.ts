@@ -41,6 +41,7 @@ function createConfig(overrides?: Partial<RepoKeeperConfig['triage']>): RepoKeep
     },
     prSummariser: { enabled: false, minDiffLines: 50, generateReleaseNotes: false },
     codeReview: { enabled: false, focus: [], maxContextFiles: 5, minDiffLines: 10 },
+    attribution: { enabled: true },
     port: 3001,
   };
 }
@@ -113,6 +114,70 @@ describe('handleIssueOpened', () => {
 
     const commentCall = (github.addComment as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(commentCall[1]).not.toContain('Thanks for the detailed bug report');
+  });
+
+  it('includes attribution footer on AI-generated comments', async () => {
+    const ai = createMockAI('bug', 'We are looking into this crash.');
+    const github = createMockGithub();
+    const config = createConfig();
+
+    const detailedBody = 'The application crashes when I try to login. I am using Chrome on Windows 10. ' +
+      'The console shows a TypeError: Cannot read property of undefined. Stack trace is below.';
+
+    await handleIssueOpened(
+      { issue: { number: 10, title: 'Login crash', body: detailedBody } },
+      ai,
+      github,
+      config,
+    );
+
+    const commentCall = (github.addComment as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(commentCall[1]).toContain('Powered by [RepoKeeper]');
+  });
+
+  it('omits attribution footer when attribution is disabled', async () => {
+    const ai = createMockAI('bug', 'We are looking into this crash.');
+    const github = createMockGithub();
+    const config = createConfig();
+    config.attribution = { enabled: false };
+
+    const detailedBody = 'The application crashes when I try to login. I am using Chrome on Windows 10. ' +
+      'The console shows a TypeError: Cannot read property of undefined. Stack trace is below.';
+
+    await handleIssueOpened(
+      { issue: { number: 11, title: 'Login crash', body: detailedBody } },
+      ai,
+      github,
+      config,
+    );
+
+    const commentCall = (github.addComment as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(commentCall[1]).not.toContain('Powered by [RepoKeeper]');
+  });
+
+  it('does NOT include attribution footer on duplicate detection comment', async () => {
+    const ai: AIProvider = {
+      complete: async (prompt: string) => {
+        if (prompt.includes('duplicate issue detector')) return { text: '0.85', usage };
+        return { text: 'comment', usage };
+      },
+    };
+    const github = createMockGithub();
+    (github.listOpenIssues as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { number: 1, title: 'app crashes on start', body: 'the app crashes when I start it' },
+      { number: 20, title: 'app wont start up', body: 'tried installing but the app refuses to start' },
+    ]);
+    const config = createConfig();
+
+    await handleIssueOpened(
+      { issue: { number: 20, title: 'app wont start up', body: 'tried installing but the app refuses to start' } },
+      ai,
+      github,
+      config,
+    );
+
+    const commentCall = (github.addComment as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(commentCall[1]).not.toContain('Powered by [RepoKeeper]');
   });
 
   it('flags duplicates with possible-duplicate label instead of closing', async () => {

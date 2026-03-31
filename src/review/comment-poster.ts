@@ -1,6 +1,8 @@
 import { Octokit } from '@octokit/rest';
 import { log } from '../logger.js';
 import type { ReviewFinding, ReviewResult } from './types.js';
+import type { AttributionConfig } from '../utils/attribution.js';
+import { withAttribution } from '../utils/attribution.js';
 
 type ReviewEvent = 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
 
@@ -25,9 +27,10 @@ function determineEvent(findings: ReviewFinding[]): ReviewEvent {
   return 'COMMENT';
 }
 
-function buildReviewBody(result: ReviewResult): string {
+function buildReviewBody(result: ReviewResult, attribution: AttributionConfig): string {
   if (result.findings.length === 0) {
-    return `## RepoKeeper Code Review\n\n${result.summary}\n\nNo issues found. Looks good! ✅`;
+    const body = `## RepoKeeper Code Review\n\n${result.summary}\n\nNo issues found. Looks good! ✅`;
+    return withAttribution(body, attribution);
   }
 
   const blocking = result.findings.filter((f) => f.severity === 'BLOCKING');
@@ -36,10 +39,9 @@ function buildReviewBody(result: ReviewResult): string {
 
   let body = `## RepoKeeper Code Review\n\n${result.summary}\n\n`;
   body += `**Found ${result.findings.length} issue(s):** `;
-  body += `${blocking.length} blocking, ${warnings.length} warning(s), ${suggestions.length} suggestion(s)\n\n`;
-  body += `---\n*Review by [RepoKeeper](https://github.com/GodsBoy/repokeeper)*`;
+  body += `${blocking.length} blocking, ${warnings.length} warning(s), ${suggestions.length} suggestion(s)`;
 
-  return body;
+  return withAttribution(body, attribution);
 }
 
 function buildComments(findings: ReviewFinding[]): ReviewComment[] {
@@ -57,9 +59,10 @@ export async function postReview(
   pullNumber: number,
   commitSha: string,
   result: ReviewResult,
+  attribution: AttributionConfig = { enabled: true },
 ): Promise<void> {
   const event = determineEvent(result.findings);
-  const body = buildReviewBody(result);
+  const body = buildReviewBody(result, attribution);
   const comments = buildComments(result.findings);
 
   try {
