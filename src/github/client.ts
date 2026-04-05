@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import type { RepoKeeperConfig } from '../config.js';
 import { log } from '../logger.js';
+import fetch from 'node-fetch';
 
 export class GitHubClient {
   private octokit: Octokit;
@@ -32,6 +33,26 @@ export class GitHubClient {
       body,
     });
     log('info', `Posted comment on #${issueNumber}`);
+  }
+
+  async sendNotification(message: string): Promise<void> {
+    const webhookUrl = process.env.WEBHOOK_URL;
+    if (!webhookUrl) return;
+
+    try {
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: message }),
+      });
+      log('info', `Sent notification to webhook`);
+    } catch (err) {
+      log('warn', 'Notification error', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   async closeIssue(issueNumber: number): Promise<void> {

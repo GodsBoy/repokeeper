@@ -72,11 +72,16 @@ export async function handleIssueOpened(
   if (duplicates.length > 0) {
     const dup = duplicates[0];
     await github.addLabels(number, ['possible-duplicate']);
+
+    await github.sendNotification(
+      `RepoKeeper:\nIssue #${number}\nTitle: ${title}\nLabel: possible-duplicate`
+    );
+
     await github.addComment(
       number,
       `This issue appears to be related to #${dup.number} ("${dup.title}"), which covers a similar topic. ` +
-        `Please check that issue first — if your problem is different, feel free to reopen this with ` +
-        `additional details explaining how it differs.\n\nThank you for contributing!`,
+      `Please check that issue first — if your problem is different, feel free to reopen this with ` +
+      `additional details explaining how it differs.\n\nThank you for contributing!`,
     );
     log('info', `Issue #${number} flagged as possible duplicate of #${dup.number}`);
     return;
