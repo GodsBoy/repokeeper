@@ -44,6 +44,10 @@ export interface RepoKeeperConfig {
     ignore?: string[];
     commitStatus?: boolean;
   };
+  attribution: {
+    enabled: boolean;
+    playgroundUrl?: string;
+  };
   port: number;
 }
 
@@ -75,6 +79,10 @@ const defaults: RepoKeeperConfig = {
     minDiffLines: 10,
     ignore: [],
     commitStatus: false,
+  },
+  attribution: {
+    enabled: true,
+    playgroundUrl: undefined,
   },
   port: 3001,
 };

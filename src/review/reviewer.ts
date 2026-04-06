@@ -237,7 +237,7 @@ export async function handleCodeReview(
 
   // Post review via GitHub API
   const octokit = new Octokit({ auth: config.github.token });
-  await postReview(octokit, owner, repo, prNumber, headSha, result);
+  await postReview(octokit, owner, repo, prNumber, headSha, result, config.attribution);
 
   // Post commit status if enabled
   if (reviewConfig.commitStatus) {
