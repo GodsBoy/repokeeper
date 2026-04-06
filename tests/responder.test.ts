@@ -26,6 +26,7 @@ function createMockGithub() {
     addLabels: vi.fn().mockResolvedValue(undefined),
     addComment: vi.fn().mockResolvedValue(undefined),
     closeIssue: vi.fn().mockResolvedValue(undefined),
+    sendNotification: vi.fn().mockResolvedValue(undefined),
   } as unknown as GitHubClient;
 }
 
