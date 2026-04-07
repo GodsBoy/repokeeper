@@ -16,6 +16,7 @@ function createApp(ai: AIProvider) {
     prSummariser: { enabled: true, minDiffLines: 50, generateReleaseNotes: false },
     codeReview: { enabled: true, focus: [], maxContextFiles: 5, minDiffLines: 10 },
     attribution: { enabled: true },
+    notifications: { enabled: false },
     port: 3001,
   };
 

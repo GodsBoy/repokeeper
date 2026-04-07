@@ -27,6 +27,7 @@ const baseConfig: RepoKeeperConfig = {
   prSummariser: { enabled: true, minDiffLines: 5, generateReleaseNotes: true },
   codeReview: { enabled: true, focus: ['security', 'performance', 'test-coverage', 'breaking-changes'], maxContextFiles: 5, minDiffLines: 10 },
   attribution: { enabled: true },
+  notifications: { enabled: false },
   port: 3001,
 };
 

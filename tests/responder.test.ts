@@ -42,6 +42,7 @@ function createConfig(overrides?: Partial<RepoKeeperConfig['triage']>): RepoKeep
     prSummariser: { enabled: false, minDiffLines: 50, generateReleaseNotes: false },
     codeReview: { enabled: false, focus: [], maxContextFiles: 5, minDiffLines: 10 },
     attribution: { enabled: true },
+    notifications: { enabled: false },
     port: 3001,
   };
 }
