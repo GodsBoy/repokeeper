@@ -25,5 +25,11 @@ export default {
     // Set to your deployment URL to add a "Try it live" link in the footer
     // playgroundUrl: 'https://your-server.example.com/playground',
   },
+  // Optional: send notifications to Slack/Discord when issues are triaged or PRs are reviewed
+  notifications: {
+    enabled: false,
+    // slackWebhookUrl: 'https://hooks.slack.com/services/...',
+    // discordWebhookUrl: 'https://discord.com/api/webhooks/...',
+  },
   port: 3001,
 };

@@ -48,6 +48,11 @@ export interface RepoKeeperConfig {
     enabled: boolean;
     playgroundUrl?: string;
   };
+  notifications: {
+    enabled: boolean;
+    slackWebhookUrl?: string;
+    discordWebhookUrl?: string;
+  };
   port: number;
 }
 
@@ -83,6 +88,9 @@ const defaults: RepoKeeperConfig = {
   attribution: {
     enabled: true,
     playgroundUrl: undefined,
+  },
+  notifications: {
+    enabled: false,
   },
   port: 3001,
 };
