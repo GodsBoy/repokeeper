@@ -8,6 +8,7 @@ import { handlePullRequest, handlePullRequestMerged } from '../pr/summariser.js'
 import { handleCodeReview, handleCodeReviewMerged } from '../review/reviewer.js';
 import type { AIProvider } from '../ai/provider.js';
 import { GitHubClient } from '../github/client.js';
+import { sendNotification } from '../notifications/notifier.js';
 
 export function createWebhookHandler(ai: AIProvider, _defaultGithub: GitHubClient) {
   return async (req: Request, res: Response): Promise<void> => {
@@ -60,11 +61,25 @@ export function createWebhookHandler(ai: AIProvider, _defaultGithub: GitHubClien
     log('info', `Received webhook: ${eventKey} for ${repoOwner}/${repoName}`);
     recordEvent(eventKey);
 
+    const repoFullName = `${repoOwner}/${repoName}`;
+    const htmlUrlBase = req.body?.repository?.html_url ?? `https://github.com/${repoFullName}`;
+
     try {
       switch (eventKey) {
         case 'issues.opened':
           if (config.triage.enabled) {
-            await handleIssueOpened(req.body, ai, github, config);
+            const triageResult = await handleIssueOpened(req.body, ai, github, config);
+            if (triageResult) {
+              await sendNotification({
+                type: 'issue_triaged',
+                repo: repoFullName,
+                number: req.body.issue.number,
+                title: req.body.issue.title,
+                url: `${htmlUrlBase}/issues/${req.body.issue.number}`,
+                classification: triageResult.classification,
+                summary: triageResult.summary,
+              }, config.notifications);
+            }
           }
           break;
 
@@ -76,9 +91,25 @@ export function createWebhookHandler(ai: AIProvider, _defaultGithub: GitHubClien
         case 'pull_request.synchronize':
           if (config.prSummariser.enabled) {
             await handlePullRequest(req.body, ai, github, config);
+            await sendNotification({
+              type: 'pr_summarised',
+              repo: repoFullName,
+              number: req.body.pull_request.number,
+              title: req.body.pull_request.title,
+              url: `${htmlUrlBase}/pull/${req.body.pull_request.number}`,
+              summary: `PR #${req.body.pull_request.number} has been summarised.`,
+            }, config.notifications);
           }
           if (config.codeReview.enabled) {
             await handleCodeReview(req.body, ai, github, config);
+            await sendNotification({
+              type: 'pr_reviewed',
+              repo: repoFullName,
+              number: req.body.pull_request.number,
+              title: req.body.pull_request.title,
+              url: `${htmlUrlBase}/pull/${req.body.pull_request.number}`,
+              summary: `PR #${req.body.pull_request.number} has been reviewed.`,
+            }, config.notifications);
           }
           break;
 
