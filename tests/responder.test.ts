@@ -98,6 +98,27 @@ describe('handleIssueOpened', () => {
     expect(commentCall[1]).not.toContain('Thanks for the detailed bug report');
   });
 
+  it('includes triage evidence on detailed issue comments', async () => {
+    const ai = createMockAI('bug', 'We are looking into this login crash.');
+    const github = createMockGithub();
+    const config = createConfig();
+
+    const detailedBody = 'The application crashes when I try to login. I am using Chrome on Windows 10. ' +
+      'The console shows a TypeError: Cannot read property of undefined. Stack trace is below.';
+
+    await handleIssueOpened(
+      { issue: { number: 12, title: 'Login crash', body: detailedBody } },
+      ai,
+      github,
+      config,
+    );
+
+    const commentCall = (github.addComment as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(commentCall[1]).toContain('RepoKeeper triage evidence');
+    expect(commentCall[1]).toContain('Classification: bug');
+    expect(commentCall[1]).toContain('Label: `bug`');
+  });
+
   it('never says "Thanks for the detailed bug report" on vague issues', async () => {
     const ai = createMockAI('bug', 'We need more info to investigate this issue about startup problems.');
     const github = createMockGithub();
@@ -200,7 +221,40 @@ describe('handleIssueOpened', () => {
     );
 
     expect(github.addLabels).toHaveBeenCalledWith(5, ['possible-duplicate']);
-    // Should NOT close the issue — just flag it
+    // Should NOT close the issue, just flag it
+    expect(github.closeIssue).not.toHaveBeenCalled();
+  });
+
+  it('shows a duplicate candidate cluster in duplicate comments', async () => {
+    const ai: AIProvider = {
+      complete: async (prompt: string) => {
+        if (prompt.includes('app crashes on start')) return { text: '0.91', usage };
+        if (prompt.includes('startup fails after install')) return { text: '0.84', usage };
+        if (prompt.includes('dark mode')) return { text: '0.1', usage };
+        return { text: 'comment', usage };
+      },
+    };
+    const github = createMockGithub();
+    (github.listOpenIssues as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { number: 1, title: 'app crashes on start', body: 'the app crashes when I start it' },
+      { number: 2, title: 'startup fails after install', body: 'the server does not start after setup' },
+      { number: 3, title: 'dark mode request', body: 'please add dark mode' },
+      { number: 6, title: 'app wont start up', body: 'tried installing but the app refuses to start' },
+    ]);
+    const config = createConfig();
+
+    await handleIssueOpened(
+      { issue: { number: 6, title: 'app wont start up', body: 'tried installing but the app refuses to start' } },
+      ai,
+      github,
+      config,
+    );
+
+    const commentCall = (github.addComment as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(commentCall[1]).toContain('RepoKeeper triage evidence');
+    expect(commentCall[1]).toContain('#1 "app crashes on start"');
+    expect(commentCall[1]).toContain('#2 "startup fails after install"');
+    expect(commentCall[1]).not.toContain('#3 "dark mode request"');
     expect(github.closeIssue).not.toHaveBeenCalled();
   });
 });
