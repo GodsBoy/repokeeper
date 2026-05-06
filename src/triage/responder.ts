@@ -3,6 +3,7 @@ import type { GitHubClient } from '../github/client.js';
 import type { RepoKeeperConfig } from '../config.js';
 import { classifyIssue, categoryToLabel } from './classifier.js';
 import { findDuplicates } from './duplicate.js';
+import { buildClassificationEvidence, buildDuplicateEvidence, renderEvidenceCard } from './evidence.js';
 import { withAttribution } from '../utils/attribution.js';
 import { log } from '../logger.js';
 
@@ -77,12 +78,14 @@ export async function handleIssueOpened(
 
   if (duplicates.length > 0) {
     const dup = duplicates[0];
+    const evidenceCard = renderEvidenceCard(buildDuplicateEvidence(duplicates));
     await github.addLabels(number, ['possible-duplicate']);
     await github.addComment(
       number,
-      `This issue appears to be related to #${dup.number} ("${dup.title}"), which covers a similar topic. ` +
-        `Please check that issue first — if your problem is different, feel free to reopen this with ` +
-        `additional details explaining how it differs.\n\nThank you for contributing!`,
+      `${evidenceCard}\n\n` +
+        `This issue appears to be related to #${dup.number} ("${dup.title}"), which covers a similar topic. ` +
+        `Please check that issue first. If your problem is different, add a note explaining how it differs.\n\n` +
+        `Thank you for contributing!`,
     );
     log('info', `Issue #${number} flagged as possible duplicate of #${dup.number}`);
     return { classification: 'possible-duplicate', summary: `Possible duplicate of #${dup.number} ("${dup.title}")` };
@@ -97,7 +100,8 @@ export async function handleIssueOpened(
 
   // Generate contextual response using AI
   const comment = await generateComment(title, bodyText, category, ai);
-  await github.addComment(number, withAttribution(comment, config.attribution));
+  const evidenceCard = renderEvidenceCard(buildClassificationEvidence(category, label, title, bodyText));
+  await github.addComment(number, withAttribution(`${evidenceCard}\n\n${comment}`, config.attribution));
 
   log('info', `Issue #${number} classified as "${category}", labelled [${labels.join(', ')}]`);
 

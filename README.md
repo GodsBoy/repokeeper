@@ -39,7 +39,7 @@ See [demo/demo.cast](demo/demo.cast) — play with: `asciinema play demo/demo.ca
 
 **Try it live** — paste a GitHub issue or PR diff and see RepoKeeper's AI in action, no deployment required.
 
-Once running, visit `http://your-server:3001/playground` to try issue triage and PR summarisation instantly.
+Once running, visit `http://your-server:3001/playground` to try issue triage and PR summarisation instantly. Issue triage previews show the same compact evidence card style used in live issue comments.
 
 Set `attribution.playgroundUrl` in your config to link the playground from every AI-generated comment.
 
@@ -51,7 +51,7 @@ Maintainers are drowning. AI-generated pull requests, duplicate issues, low-effo
 
 RepoKeeper connects to your GitHub repositories via webhooks and handles the boring parts autonomously:
 
-- **Issue Triage** — Automatically classifies new issues (bug, feature, question, docs, invalid), detects duplicates, applies labels, and posts helpful responses
+- **Issue Triage** - Automatically classifies new issues (bug, feature, question, docs, invalid), detects duplicates, applies labels, and posts helpful responses with compact triage evidence
 - **PR Summarisation** — Generates plain-English summaries of pull requests with per-file descriptions, flags breaking changes, and applies size labels
 - **Code Review** — Codebase-aware AI code review with line-by-line GitHub review comments, test gap detection, configurable focus areas, and review memory
 - **Multi-Repo** — Manage multiple repositories from a single instance with per-repo configuration
@@ -262,6 +262,19 @@ RepoKeeper provides codebase-aware AI code review that posts line-by-line review
 ### Free with Ollama
 
 The code review feature works with all three AI providers. Use Ollama for completely free, private, local code review with no API costs.
+
+## Triage Evidence
+
+RepoKeeper includes a compact triage evidence card in issue comments so maintainers can quickly see what it decided and why.
+
+For regular issue triage, the card shows:
+
+- The selected classification
+- The applied label
+- A confidence level
+- A short evidence note
+
+For possible duplicates, RepoKeeper shows a small cluster of related issue candidates with match scores. It keeps the issue open by default so maintainers and reporters can compare the candidates before treating the report as a duplicate.
 
 ## Architecture
 

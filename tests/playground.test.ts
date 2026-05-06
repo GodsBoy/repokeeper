@@ -48,15 +48,20 @@ describe('GET /playground', () => {
 });
 
 describe('POST /playground/preview', () => {
-  it('returns AI result for issue type', async () => {
-    const ai = mockAI('This is a bug report about login failures.');
+  it('returns evidence card for issue type', async () => {
+    const ai = mockAI('bug');
     const app = createApp(ai);
     const res = await request(app)
       .post('/playground/preview')
-      .send({ type: 'issue', input: 'Login is broken' });
+      .send({
+        type: 'issue',
+        input: 'Login crash\nThe login page throws a TypeError with a stack trace when I submit the form.',
+      });
     expect(res.status).toBe(200);
-    expect(res.body.result).toBe('This is a bug report about login failures.');
-    expect(ai.complete).toHaveBeenCalledWith(expect.stringContaining('triage assistant'));
+    expect(res.body.result).toContain('RepoKeeper triage evidence');
+    expect(res.body.result).toContain('Classification: bug');
+    expect(res.body.result).toContain('Label: `bug`');
+    expect(ai.complete).toHaveBeenCalledWith(expect.stringContaining('Classify'));
   });
 
   it('returns AI result for pr-summary type', async () => {
@@ -110,7 +115,10 @@ describe('POST /playground/preview', () => {
     const app = createApp(failingAI());
     const res = await request(app)
       .post('/playground/preview')
-      .send({ type: 'issue', input: 'some content' });
+      .send({
+        type: 'issue',
+        input: 'Login crash\nThe login page throws a TypeError with a stack trace when I submit the form.',
+      });
     expect(res.status).toBe(503);
     expect(res.body.error).toContain('AI provider unavailable');
     expect(res.body.error).not.toContain('API key');

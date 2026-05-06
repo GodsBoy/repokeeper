@@ -3,10 +3,10 @@ import rateLimit from 'express-rate-limit';
 import type { AIProvider } from './ai/provider.js';
 import type { RepoKeeperConfig } from './config.js';
 import { log } from './logger.js';
+import { classifyIssue, categoryToLabel } from './triage/classifier.js';
+import { buildClassificationEvidence, renderEvidenceCard } from './triage/evidence.js';
 
 const MAX_INPUT_LENGTH = 10_000;
-
-const ISSUE_PROMPT = `You are a GitHub issue triage assistant. Given the following issue, classify it, suggest labels, and write a helpful response. Issue:\n\n`;
 
 const PR_PROMPT = `You are a code review assistant. Given the following PR diff, write a concise plain-English summary of what changed and why it matters.\n\nDiff:\n\n`;
 
@@ -145,12 +145,13 @@ export function registerPlayground(app: Express, ai: AIProvider, _config: RepoKe
       return;
     }
 
-    const prompt = type === 'issue'
-      ? ISSUE_PROMPT + input
-      : PR_PROMPT + input;
-
     try {
-      const { text } = await ai.complete(prompt);
+      if (type === 'issue') {
+        res.json({ result: await previewIssueEvidence(input, ai) });
+        return;
+      }
+
+      const { text } = await ai.complete(PR_PROMPT + input);
       res.json({ result: text.trim() });
     } catch (err) {
       log('error', 'Playground AI error', {
@@ -161,4 +162,21 @@ export function registerPlayground(app: Express, ai: AIProvider, _config: RepoKe
   });
 
   log('info', 'Playground registered at /playground');
+}
+
+async function previewIssueEvidence(input: string, ai: AIProvider): Promise<string> {
+  const { title, body } = splitIssuePreviewInput(input);
+  const category = await classifyIssue(title, body, ai);
+  const label = categoryToLabel(category);
+  const evidence = buildClassificationEvidence(category, label, title, body);
+
+  return renderEvidenceCard(evidence);
+}
+
+function splitIssuePreviewInput(input: string): { title: string; body: string } {
+  const lines = input.trim().split(/\r?\n/);
+  const title = lines[0]?.trim() || 'Untitled issue';
+  const body = lines.slice(1).join('\n').trim() || input.trim();
+
+  return { title, body };
 }
