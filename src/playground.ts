@@ -114,7 +114,7 @@ interface PreviewRequest {
   input: string;
 }
 
-export function registerPlayground(app: Express, ai: AIProvider, config: RepoKeeperConfig): void {
+export function registerPlayground(app: Express, ai: AIProvider, _config: RepoKeeperConfig): void {
   const playgroundLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,

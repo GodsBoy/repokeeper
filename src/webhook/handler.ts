@@ -8,6 +8,7 @@ import { handlePullRequest, handlePullRequestMerged } from '../pr/summariser.js'
 import { handleCodeReview, handleCodeReviewMerged } from '../review/reviewer.js';
 import type { AIProvider } from '../ai/provider.js';
 import { GitHubClient } from '../github/client.js';
+import { getEnabledWorkflows, hasWorkflowForEvent } from './router.js';
 
 export function createWebhookHandler(ai: AIProvider, _defaultGithub: GitHubClient) {
   return async (req: Request, res: Response): Promise<void> => {
@@ -61,38 +62,38 @@ export function createWebhookHandler(ai: AIProvider, _defaultGithub: GitHubClien
     recordEvent(eventKey);
 
     try {
-      switch (eventKey) {
-        case 'issues.opened':
-          if (config.triage.enabled) {
+      const workflows = getEnabledWorkflows(eventKey, config, req.body);
+
+      if (workflows.length === 0 && !hasWorkflowForEvent(eventKey)) {
+        log('debug', `Unhandled event: ${eventKey}`);
+      }
+
+      for (const workflow of workflows) {
+        switch (workflow.action) {
+          case 'issue.triage':
             await handleIssueOpened(req.body, ai, github, config);
-          }
-          break;
+            break;
 
-        case 'issues.edited':
-          log('info', 'Issue edited — no action for MVP');
-          break;
+          case 'issue.noop':
+            log('info', 'Issue edited, no action for MVP');
+            break;
 
-        case 'pull_request.opened':
-        case 'pull_request.synchronize':
-          if (config.prSummariser.enabled) {
+          case 'pr.summarise':
             await handlePullRequest(req.body, ai, github, config);
-          }
-          if (config.codeReview.enabled) {
+            break;
+
+          case 'pr.review':
             await handleCodeReview(req.body, ai, github, config);
-          }
-          break;
+            break;
 
-        case 'pull_request.closed':
-          if (config.prSummariser.enabled && req.body?.pull_request?.merged) {
+          case 'pr.releaseNotes':
             await handlePullRequestMerged(req.body, ai, github, config);
-          }
-          if (config.codeReview.enabled && req.body?.pull_request?.merged) {
-            await handleCodeReviewMerged(req.body, config);
-          }
-          break;
+            break;
 
-        default:
-          log('debug', `Unhandled event: ${eventKey}`);
+          case 'pr.reviewMemory':
+            await handleCodeReviewMerged(req.body, config);
+            break;
+        }
       }
 
       res.status(200).json({ ok: true });

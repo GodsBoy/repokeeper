@@ -57,7 +57,6 @@ export function parseDiffHunks(diff: string): HunkInfo[] {
   let currentFile = '';
   let currentHunkStart = 0;
   let currentHunkLines: string[] = [];
-  let lineCounter = 0;
 
   for (const line of lines) {
     // Match diff file header: diff --git a/path b/path
@@ -75,7 +74,6 @@ export function parseDiffHunks(diff: string): HunkInfo[] {
       currentFile = fileMatch[2];
       currentHunkLines = [];
       currentHunkStart = 0;
-      lineCounter = 0;
       continue;
     }
 
@@ -93,18 +91,14 @@ export function parseDiffHunks(diff: string): HunkInfo[] {
       }
       currentHunkStart = parseInt(hunkMatch[1], 10);
       currentHunkLines = [];
-      lineCounter = 0;
       continue;
     }
 
     // Track added/modified lines (+ prefix)
     if (line.startsWith('+') && !line.startsWith('+++')) {
       currentHunkLines.push(line);
-      lineCounter++;
     } else if (line.startsWith('-') && !line.startsWith('---')) {
       // Removed lines don't increment line counter
-    } else if (!line.startsWith('\\')) {
-      lineCounter++;
     }
   }
 

@@ -27,5 +27,20 @@ Thumbs.db
 coverage/
 
 # Local agent files (not for public repo)
+AGENTS.md
 CLAUDE.md
 PROGRESS.md
+TASK.md
+BRIEF.local.md
+BRIEF.private.md
+TASK.local.md
+TASK.private.md
+PROGRESS.local.md
+PROGRESS.private.md
+tasks/
+docs/ideation/
+.compound-engineering/
+.context/
+.ce/
+compound-engineering/
+ce/

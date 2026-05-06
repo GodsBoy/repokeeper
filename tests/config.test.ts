@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRepoConfig, deepMerge, resolveRepoConfig } from '../src/config.js';
+import { mergeRepoConfig, deepMerge } from '../src/config.js';
 import type { RepoKeeperConfig } from '../src/config.js';
 
 const baseConfig: RepoKeeperConfig = {

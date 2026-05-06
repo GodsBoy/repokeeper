@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, mkdirSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { log } from '../logger.js';
 import type { EnrichedFile } from './types.js';
 
@@ -10,7 +10,7 @@ export function getCacheDir(owner: string, repo: string): string {
   return join(CACHE_DIR, `${owner}-${repo}`);
 }
 
-export function ensureRepo(cloneUrl: string, owner: string, repo: string, baseSha: string): string {
+export function ensureRepo(cloneUrl: string, owner: string, repo: string, _baseSha: string): string {
   const repoDir = getCacheDir(owner, repo);
 
   if (!existsSync(repoDir)) {
@@ -76,9 +76,6 @@ export function parseImports(content: string, filePath: string): string[] {
 function resolveImportPath(specifier: string, fromFile: string): string | null {
   const dir = dirname(fromFile);
   const base = join(dir, specifier).replace(/\\/g, '/');
-
-  // Common extensions to try
-  const extensions = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '/index.ts', '/index.js'];
 
   // If it already has an extension
   if (/\.\w+$/.test(specifier)) {

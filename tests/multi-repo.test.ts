@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { resolveRepoConfig, deepMerge } from '../src/config.js';
+import { resolveRepoConfig } from '../src/config.js';
 import type { RepoKeeperConfig, RepoEntry } from '../src/config.js';
 
 // Mock getConfig to return multi-repo configs
@@ -40,8 +40,9 @@ vi.mock('../src/config.js', async (importOriginal) => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { setMockConfig } = await import('../src/config.js') as any;
+const { setMockConfig } = await import('../src/config.js') as typeof import('../src/config.js') & {
+  setMockConfig: (cfg: RepoKeeperConfig) => void;
+};
 
 const multiRepoConfig: RepoKeeperConfig = {
   github: { token: 'test-token', webhookSecret: 'secret', owner: '', repo: '' },

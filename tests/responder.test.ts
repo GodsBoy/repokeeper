@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { handleIssueOpened } from '../src/triage/responder.js';
 import type { AIProvider } from '../src/ai/provider.js';
 import type { GitHubClient } from '../src/github/client.js';
@@ -7,13 +7,10 @@ import type { RepoKeeperConfig } from '../src/config.js';
 const usage = { inputTokens: 0, outputTokens: 0 };
 
 function createMockAI(classifyResponse: string, commentResponse: string): AIProvider {
-  let callCount = 0;
   return {
     complete: async (prompt: string) => {
       // Duplicate detection calls come first, then classify, then comment
       if (prompt.includes('duplicate issue detector')) return { text: '0.1', usage };
-      callCount++;
-      // Even calls = classify, odd calls = comment (roughly)
       if (prompt.includes('classifier') || prompt.includes('Classify')) return { text: classifyResponse, usage };
       return { text: commentResponse, usage };
     },
