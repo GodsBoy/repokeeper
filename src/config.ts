@@ -212,24 +212,34 @@ export function mergeRepoConfig(
 
   for (const key of REPO_OVERRIDE_KEYS) {
     if (key in repoYaml && repoYaml[key] && typeof repoYaml[key] === 'object') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      merged = { ...merged, [key]: deepMerge((merged as any)[key], repoYaml[key]) };
+      const currentValue = isRecord(merged[key]) ? merged[key] : {};
+      const overrideValue = isRecord(repoYaml[key]) ? repoYaml[key] : {};
+      merged = { ...merged, [key]: deepMerge(currentValue, overrideValue) };
     }
   }
 
   return merged;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function deepMerge(target: any, source: any): any {
-  const result = { ...target };
-  for (const key of Object.keys(source)) {
-    const val = source[key];
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      result[key] = deepMerge(target[key] ?? {}, val);
+export function deepMerge<T extends object>(
+  target: T,
+  source: object,
+): T {
+  const targetRecord = target as Record<string, unknown>;
+  const sourceRecord = source as Record<string, unknown>;
+  const result: Record<string, unknown> = { ...targetRecord };
+
+  for (const key of Object.keys(sourceRecord)) {
+    const val = sourceRecord[key];
+    if (isRecord(val)) {
+      result[key] = deepMerge(isRecord(targetRecord[key]) ? targetRecord[key] : {}, val);
     } else if (val !== undefined) {
       result[key] = val;
     }
   }
-  return result;
+  return result as T;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }

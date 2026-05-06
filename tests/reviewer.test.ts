@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { parseImports } from '../src/review/context-builder.js';
 import { parseDiffHunks, isAlreadyReviewed, markReviewed, getReviewedShas, cleanupPR } from '../src/review/hunk-tracker.js';
 import { getAcceptedPatterns, addAcceptedPattern, learnFromMergedPR, formatAcceptedPatternsPrompt } from '../src/review/memory.js';
 import { matchesIgnorePattern, filterIgnoredFiles, buildCommitStatus } from '../src/review/reviewer.js';
-import { existsSync, unlinkSync, mkdirSync } from 'node:fs';
+import { existsSync, unlinkSync } from 'node:fs';
 
 // --- context-builder tests ---
 
