@@ -50,6 +50,8 @@ const multiRepoConfig: RepoKeeperConfig = {
   triage: { enabled: true, duplicateThreshold: 0.85, minimumBodyLength: 100 },
   prSummariser: { enabled: true, minDiffLines: 50, generateReleaseNotes: true },
   codeReview: { enabled: true, focus: ['security', 'performance'], maxContextFiles: 5, minDiffLines: 10 },
+  attribution: { enabled: true },
+  notifications: { enabled: false },
   port: 3001,
   repos: [
     { owner: 'org1', repo: 'repo1', triage: { enabled: true, duplicateThreshold: 0.5 } },
@@ -120,6 +122,8 @@ describe('Single-repo backward compatibility', () => {
       triage: { enabled: true, duplicateThreshold: 0.85, minimumBodyLength: 100 },
       prSummariser: { enabled: true, minDiffLines: 50, generateReleaseNotes: true },
       codeReview: { enabled: true, focus: ['security'], maxContextFiles: 5, minDiffLines: 10 },
+      attribution: { enabled: true },
+      notifications: { enabled: false },
       port: 3001,
     };
     setMockConfig(singleRepoConfig);

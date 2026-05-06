@@ -54,12 +54,17 @@ Write a brief, friendly comment asking for more information. Rules:
 
 Write ONLY the comment text. Nothing else.`;
 
+export interface TriageResult {
+  classification: string;
+  summary: string;
+}
+
 export async function handleIssueOpened(
   payload: IssuePayload,
   ai: AIProvider,
   github: GitHubClient,
   config: RepoKeeperConfig,
-): Promise<void> {
+): Promise<TriageResult | null> {
   const { number, title, body } = payload.issue;
   const bodyText = body ?? '';
 
@@ -80,7 +85,7 @@ export async function handleIssueOpened(
         `additional details explaining how it differs.\n\nThank you for contributing!`,
     );
     log('info', `Issue #${number} flagged as possible duplicate of #${dup.number}`);
-    return;
+    return { classification: 'possible-duplicate', summary: `Possible duplicate of #${dup.number} ("${dup.title}")` };
   }
 
   // Classify the issue
@@ -95,6 +100,8 @@ export async function handleIssueOpened(
   await github.addComment(number, withAttribution(comment, config.attribution));
 
   log('info', `Issue #${number} classified as "${category}", labelled [${labels.join(', ')}]`);
+
+  return { classification: category, summary: comment };
 }
 
 async function generateComment(
