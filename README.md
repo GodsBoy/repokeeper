@@ -14,7 +14,7 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/GodsBoy/repokeeper)](https://github.com/GodsBoy/repokeeper/commits/main)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/GodsBoy/repokeeper/pulls)
 ![Maintained by RepoKeeper](https://img.shields.io/badge/maintained%20by-RepoKeeper-blue)
@@ -86,7 +86,7 @@ In your repo's **Settings > Webhooks**, create a webhook:
 - **Payload URL:** `https://your-server:3001/webhook`
 - **Content type:** `application/json`
 - **Secret:** Same value as `GITHUB_WEBHOOK_SECRET` in your `.env`
-- **Events:** Select "Issues" and "Pull requests"
+- **Events:** Select "Issues" and "Pull requests" (including closed pull request events if you want release notes and review memory)
 
 ### 4. Build and run
 
@@ -190,7 +190,7 @@ All configuration lives in `repokeeper.config.ts`:
 | `ai.provider` | `"claude" \| "openai" \| "ollama"` | `"claude"` | Which AI provider to use |
 | `ai.model` | `string` | `"claude-sonnet-4-6"` | Model name for the chosen provider |
 | `triage.enabled` | `boolean` | `true` | Enable/disable issue triage |
-| `triage.duplicateThreshold` | `number` | `0.85` | Similarity score (0-1) to flag duplicates |
+| `triage.duplicateThreshold` | `number` | `0.7` | Similarity score (0-1) to flag duplicates. The example config uses `0.85` for stricter matching |
 | `triage.minimumBodyLength` | `number` | `100` | Minimum issue body length before adding `needs-info` |
 | `prSummariser.enabled` | `boolean` | `true` | Enable/disable PR summarisation |
 | `prSummariser.minDiffLines` | `number` | `50` | Minimum diff size to trigger AI summary |
@@ -199,8 +199,13 @@ All configuration lives in `repokeeper.config.ts`:
 | `codeReview.focus` | `string[]` | `["security", "performance", "test-coverage", "breaking-changes"]` | Review focus areas |
 | `codeReview.maxContextFiles` | `number` | `5` | Max dependency files to include per changed file |
 | `codeReview.minDiffLines` | `number` | `10` | Minimum added lines to trigger review |
+| `codeReview.ignore` | `string[]` | `[]` | File patterns to skip during code review |
+| `codeReview.commitStatus` | `boolean` | `false` | Publish review result as a GitHub commit status |
 | `attribution.enabled` | `boolean` | `true` | Add "Powered by RepoKeeper" footer to AI comments |
 | `attribution.playgroundUrl` | `string` | — | Absolute URL to your playground (adds "Try it live" link to footer) |
+| `notifications.enabled` | `boolean` | `false` | Enable Slack or Discord notifications for triage and PR events |
+| `notifications.slackWebhookUrl` | `string` | `None` | Slack incoming webhook URL for notifications |
+| `notifications.discordWebhookUrl` | `string` | `None` | Discord webhook URL for notifications |
 | `port` | `number` | `3001` | Port for the webhook server |
 
 ## Per-Repository YAML Config
